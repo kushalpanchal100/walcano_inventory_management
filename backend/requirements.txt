@@ -1,0 +1,19 @@
+# Core Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# HTTP Client (QuickBooks Online API)
+httpx==0.28.1
+
+# Configuration & Validation
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.0
+
+# Google Gemini AI SDK
+google-genai>=1.14.0
+
