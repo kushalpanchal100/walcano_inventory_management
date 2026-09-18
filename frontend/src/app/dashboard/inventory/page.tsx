@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import DashboardLayout from '@/components/DashboardLayout';
+import QuickBooksConnectButton from '@/components/QuickBooksConnectButton';
 import {
   getLiveInventory,
   getQuickBooksStatus,
   getQuickBooksAuthUrl,
+  disconnectQuickBooks,
   QuickBooksInventoryItem,
   QuickBooksStatus,
 } from '@/lib/api';
@@ -53,6 +55,10 @@ export default function QuickBooksInventoryPage() {
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isAutoMapOpen, setIsAutoMapOpen] = useState<boolean>(false);
   const [isRestockOpen, setIsRestockOpen] = useState<boolean>(false);
+  const [connectionBanner, setConnectionBanner] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   const unmappedCount = useMemo(() => {
     return items.filter((i) => !i.is_mapped).length;
@@ -76,7 +82,7 @@ export default function QuickBooksInventoryPage() {
       ]);
 
       setQboStatus(status);
-      setIsConnected(inv.connected);
+      setIsConnected(inv.connected || status.connected);
       setIsDemoMode(inv.is_demo);
       setItems(inv.items || []);
       setCategories(inv.categories || []);
@@ -93,6 +99,26 @@ export default function QuickBooksInventoryPage() {
     loadInventory(false, false);
   }, [loadInventory]);
 
+  // Handle return redirect from QuickBooks OAuth callback
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('qbo_connected') === 'true') {
+        setConnectionBanner({
+          type: 'success',
+          message: 'QuickBooks Online connected successfully! Streaming real-time inventory.',
+        });
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (params.get('qbo_error')) {
+        setConnectionBanner({
+          type: 'error',
+          message: `QuickBooks connection issue: ${decodeURIComponent(params.get('qbo_error') || 'OAuth authorization was not completed.')}`,
+        });
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
+
   const handleConnectQuickBooks = async () => {
     try {
       const { url, error } = await getQuickBooksAuthUrl();
@@ -103,6 +129,29 @@ export default function QuickBooksInventoryPage() {
       }
     } catch (err: any) {
       alert(`Connection failed: ${err.message || err}`);
+    }
+  };
+
+  const handleDisconnectQuickBooks = async () => {
+    if (
+      !confirm(
+        'Are you sure you want to disconnect QuickBooks? Real-time inventory sync will be paused until you reconnect.'
+      )
+    ) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await disconnectQuickBooks();
+      await loadInventory(false, false);
+      setConnectionBanner({
+        type: 'info',
+        message: 'QuickBooks session disconnected. Click "Connect QuickBooks" at the top anytime to reconnect.',
+      });
+    } catch (err: any) {
+      alert(`Disconnect failed: ${err.message || err}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -188,8 +237,19 @@ export default function QuickBooksInventoryPage() {
       headerSubtitle="Real-time QuickBooks synchronization with intelligent cross-catalog mapping for Wallcano & Surfaces Tiles"
       onSearchChange={setSearchQuery}
       searchPlaceholder="Search product name, Surfaces code, SKU, or category..."
-      onRefreshClick={() => loadInventory(isDemoMode, true)}
+      onRefreshClick={() => loadInventory(false, true)}
       isRefreshing={isRefreshing}
+      quickBooksAction={
+        <QuickBooksConnectButton
+          isConnected={isConnected}
+          qboStatus={qboStatus}
+          isLoading={isLoading}
+          isRefreshing={isRefreshing}
+          onConnect={handleConnectQuickBooks}
+          onDisconnect={handleDisconnectQuickBooks}
+          onSync={() => loadInventory(false, true)}
+        />
+      }
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* AI Copilot Button */}
@@ -270,6 +330,74 @@ export default function QuickBooksInventoryPage() {
         </div>
       }
     >
+      {/* ─── OAUTH CALLBACK / STATUS ALERT BANNER ────────────────────── */}
+      {connectionBanner && (
+        <div
+          style={{
+            marginBottom: '18px',
+            padding: '12px 18px',
+            borderRadius: '10px',
+            background:
+              connectionBanner.type === 'success'
+                ? '#F0FDF4'
+                : connectionBanner.type === 'error'
+                ? '#FEF2F2'
+                : '#EFF6FF',
+            border: `1px solid ${
+              connectionBanner.type === 'success'
+                ? '#BBF7D0'
+                : connectionBanner.type === 'error'
+                ? '#FECACA'
+                : '#BFDBFE'
+            }`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {connectionBanner.type === 'success' ? (
+              <CheckCircle size={18} color="#16A34A" />
+            ) : connectionBanner.type === 'error' ? (
+              <AlertCircle size={18} color="#DC2626" />
+            ) : (
+              <Info size={18} color="#2563EB" />
+            )}
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color:
+                  connectionBanner.type === 'success'
+                    ? '#166534'
+                    : connectionBanner.type === 'error'
+                    ? '#991B1B'
+                    : '#1E40AF',
+              }}
+            >
+              {connectionBanner.message}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConnectionBanner(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#64748B',
+              fontSize: '14px',
+              padding: '4px',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ─── DUAL BRAND HERO BANNER ──────────────────────────────────── */}
       <div
         style={{
@@ -355,13 +483,15 @@ export default function QuickBooksInventoryPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             fontSize: '12px',
             color: 'var(--text-secondary)',
             background: '#F8FAFC',
             padding: '5px 14px',
             borderRadius: '20px',
             border: '1px solid var(--border-subtle)',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
           }}
         >
           <div
@@ -369,8 +499,8 @@ export default function QuickBooksInventoryPage() {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: isConnected ? '#16A34A' : 'var(--surfaces-gold)',
-              boxShadow: isConnected ? '0 0 6px rgba(22, 163, 74, 0.4)' : '0 0 6px rgba(184, 134, 11, 0.35)',
+              background: isConnected ? '#16A34A' : '#F59E0B',
+              boxShadow: isConnected ? '0 0 6px rgba(22, 163, 74, 0.4)' : '0 0 6px rgba(245, 158, 11, 0.35)',
             }}
           />
           <span>
@@ -380,6 +510,27 @@ export default function QuickBooksInventoryPage() {
               ? 'Preview Demo Mode'
               : 'Direct API Mode'}
           </span>
+          {!isConnected && (
+            <button
+              type="button"
+              onClick={handleConnectQuickBooks}
+              style={{
+                background: '#2CA01C',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '3px 9px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>Connect Now</span>
+            </button>
+          )}
         </div>
       </div>
 
