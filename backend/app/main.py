@@ -53,11 +53,9 @@ application.add_middleware(
 # ─── Register API Routers ────────────────────────────────────────────────
 
 from app.api.quickbooks.routes import router as quickbooks_router  # noqa: E402
-from app.api.inventory.routes import router as inventory_router  # noqa: E402
 from app.api.ai.routes import router as ai_router  # noqa: E402
 
 application.include_router(quickbooks_router, prefix="/api/v1")
-application.include_router(inventory_router, prefix="/api/v1")
 application.include_router(ai_router, prefix="/api/v1")
 
 
