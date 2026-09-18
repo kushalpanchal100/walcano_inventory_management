@@ -8,6 +8,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   headerTitle?: string;
   headerSubtitle?: string;
+  quickBooksAction?: React.ReactNode;
   actions?: React.ReactNode;
   searchPlaceholder?: string;
   onSearchChange?: (val: string) => void;
@@ -19,6 +20,7 @@ export default function DashboardLayout({
   children,
   headerTitle,
   headerSubtitle,
+  quickBooksAction,
   actions,
   searchPlaceholder = 'Search SKU, product name, or category...',
   onSearchChange,
@@ -154,6 +156,9 @@ export default function DashboardLayout({
               flexWrap: 'wrap',
             }}
           >
+            {/* QuickBooks Connect & Status Button */}
+            {quickBooksAction}
+
             {/* Sync Now button */}
             {onRefreshClick && (
               <button
