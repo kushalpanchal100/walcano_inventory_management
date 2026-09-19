@@ -427,7 +427,6 @@ export default function QuickBooksInventoryPage() {
 
       {/* ─── DUAL BRAND HERO BANNER ──────────────────────────────────── */}
       <div
-        className="dashboard-card-elevated"
         style={{
           background: '#FFFFFF',
           borderRadius: '14px',
@@ -807,7 +806,6 @@ export default function QuickBooksInventoryPage() {
 
       {/* ─── FILTERS & CONTROLS ──────────────────────────────────────── */}
       <div
-        className="dashboard-card-elevated"
         style={{
           background: '#FFFFFF',
           borderRadius: '12px',

@@ -4,11 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 
 interface DynamicBrandBackgroundProps {
   children?: React.ReactNode;
-  variant?: 'dark' | 'light';
-  isFixed?: boolean;
   showParticles?: boolean;
   interactive?: boolean;
-  contentAlign?: 'center' | 'stretch';
   className?: string;
   style?: React.CSSProperties;
 }
@@ -31,11 +28,8 @@ const PARTICLES = [
 
 export default function DynamicBrandBackground({
   children,
-  variant = 'dark',
-  isFixed = false,
   showParticles = true,
   interactive = true,
-  contentAlign = 'center',
   className = '',
   style = {},
 }: DynamicBrandBackgroundProps) {
@@ -50,33 +44,37 @@ export default function DynamicBrandBackground({
     if (!interactive) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isFixed) {
-        setMousePos({ x: e.clientX, y: e.clientY, active: true });
-      } else {
-        if (!containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        setMousePos({ x, y, active: true });
-      }
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setMousePos({ x, y, active: true });
     };
 
     const handleMouseLeave = () => {
       setMousePos((prev) => ({ ...prev, active: false }));
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseleave', handleMouseLeave);
+    const node = containerRef.current;
+    if (node) {
+      node.addEventListener('mousemove', handleMouseMove);
+      node.addEventListener('mouseleave', handleMouseLeave);
+    }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseleave', handleMouseLeave);
+      if (node) {
+        node.removeEventListener('mousemove', handleMouseMove);
+        node.removeEventListener('mouseleave', handleMouseLeave);
+      }
     };
-  }, [interactive, isFixed]);
+  }, [interactive]);
 
-  // Background layers markup
-  const backgroundLayers = (
-    <>
+  return (
+    <div
+      ref={containerRef}
+      className={`brand-bg-container ${className}`}
+      style={style}
+    >
       {/* ─── LAYER 1: Dynamic Brand Aurora Orbs ───────────────────────── */}
       {/* Surfaces Warm Champagne Gold Glow */}
       <div className="brand-bg-orb brand-bg-orb-gold" aria-hidden="true" />
@@ -130,29 +128,8 @@ export default function DynamicBrandBackground({
           aria-hidden="true"
         />
       )}
-    </>
-  );
 
-  return (
-    <div
-      ref={containerRef}
-      className={`brand-bg-container brand-bg-${variant} ${className}`}
-      style={{
-        ...style,
-        alignItems: contentAlign === 'stretch' ? 'stretch' : 'center',
-        justifyContent: contentAlign === 'stretch' ? 'flex-start' : 'center',
-      }}
-    >
-      {/* Either fixed to viewport (for dashboards) or relative to container (for auth cards) */}
-      {isFixed ? (
-        <div className="brand-bg-fixed-canvas" aria-hidden="true">
-          {backgroundLayers}
-        </div>
-      ) : (
-        backgroundLayers
-      )}
-
-      {/* ─── CONTENT SLOT (Cards, Forms, Dashboard layout) ─────────── */}
+      {/* ─── CONTENT SLOT (Cards, Forms, etc.) ───────────────────────── */}
       <div
         style={{
           position: 'relative',
@@ -160,8 +137,8 @@ export default function DynamicBrandBackground({
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: contentAlign === 'stretch' ? 'stretch' : 'center',
-          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         {children}
