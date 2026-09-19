@@ -235,10 +235,23 @@ body {
   box-shadow: var(--shadow-xs);
 }
 
+[data-theme="dark"] .btn-primary {
+  background: #F8FAFC;
+  color: #0F172A;
+  border-color: #F8FAFC;
+  font-weight: 700;
+}
+
 .btn-primary:hover {
   background: var(--wallcano-slate);
   border-color: var(--surfaces-gold);
   box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2);
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+  border-color: var(--surfaces-gold);
 }
 
 .btn-secondary {
@@ -778,7 +791,7 @@ html, body, header, .stat-card, .inventory-table-container, .btn, .btn-secondary
   }
 
   .header-actions-group {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 }
 

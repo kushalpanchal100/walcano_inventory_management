@@ -302,19 +302,18 @@ export default function QuickBooksInventoryPage() {
         />
       }
       actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
           {/* AI Copilot Button */}
           <button
             type="button"
             onClick={() => setIsCopilotOpen(true)}
             className="btn btn-ai"
             title="Open AI Inventory Assistant"
+            style={{ padding: '6px 11px', fontSize: '12px', whiteSpace: 'nowrap' }}
           >
-            <Sparkles size={14} />
+            <Sparkles size={13} />
             <span>AI Copilot</span>
           </button>
-
-
 
           {/* AI Restock Insights Button */}
           <button
@@ -322,8 +321,9 @@ export default function QuickBooksInventoryPage() {
             onClick={() => setIsRestockOpen(true)}
             className="btn btn-secondary"
             title="AI Stockout forecasting and replenishment recommendations"
+            style={{ padding: '6px 11px', fontSize: '12px', whiteSpace: 'nowrap' }}
           >
-            <TrendingDown size={14} color="var(--surfaces-gold)" />
+            <TrendingDown size={13} color="var(--surfaces-gold)" />
             <span>Restock AI</span>
           </button>
 
@@ -334,11 +334,14 @@ export default function QuickBooksInventoryPage() {
             disabled={items.length === 0 || isLoading || isExporting}
             className="btn btn-primary"
             style={{
-              background: exportSuccess ? '#16A34A' : '#0F172A',
-              borderColor: exportSuccess ? '#16A34A' : '#0F172A',
+              padding: '6px 11px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              background: exportSuccess ? '#16A34A' : undefined,
+              borderColor: exportSuccess ? '#16A34A' : undefined,
             }}
           >
-            {exportSuccess ? <Check size={14} /> : <Download size={14} />}
+            {exportSuccess ? <Check size={13} /> : <Download size={13} />}
             <span>{exportSuccess ? 'Downloaded!' : 'Export CSV'}</span>
             {filteredItems.length > 0 && !exportSuccess && (
               <span
@@ -346,7 +349,7 @@ export default function QuickBooksInventoryPage() {
                   fontSize: '10px',
                   fontWeight: 700,
                   background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '1px 6px',
+                  padding: '1px 5px',
                   borderRadius: '10px',
                 }}
               >
@@ -839,7 +842,11 @@ export default function QuickBooksInventoryPage() {
               type="button"
               onClick={() => setMappingFilter('all')}
               className={`btn ${mappingFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '6px 12px', fontSize: '12px' }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: mappingFilter === 'all' ? 700 : 600,
+              }}
             >
               All Tiles ({items.length})
             </button>

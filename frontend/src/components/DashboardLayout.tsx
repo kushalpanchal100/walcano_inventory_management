@@ -128,12 +128,14 @@ export default function DashboardLayout({
           style={{
             maxWidth: '1700px',
             margin: '0 auto',
-            padding: '12px 28px',
+            padding: '8px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '20px',
-            flexWrap: 'wrap',
+            gap: '12px',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
           }}
         >
           {/* ─── Left: Combined Brand / Logo Area ─────────────────────── */}
@@ -142,36 +144,37 @@ export default function DashboardLayout({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              background: '#FFFFFF',
-              padding: '6px 14px',
+              gap: '10px',
+              background: 'var(--bg-card)',
+              padding: '5px 12px',
               borderRadius: '10px',
               border: '1px solid var(--border-subtle)',
               textDecoration: 'none',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+              boxShadow: 'var(--shadow-xs)',
               flexShrink: 0,
+              transition: 'all 0.15s ease',
             }}
           >
             {/* Wallcano Logo */}
             <img
               src="/brands/wallcano-logo.png"
               alt="Wallcano Tiles"
-              style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
             />
 
             {/* Vertical Divider */}
-            <div style={{ height: '22px', width: '1px', background: 'var(--border-subtle)' }} />
+            <div style={{ height: '20px', width: '1px', background: 'var(--border-subtle)' }} />
 
             {/* Surfaces Logo */}
             <img
               src="/brands/surfaces-logo.png"
               alt="Surfaces Tiles"
-              style={{ height: '18px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: '16px', width: 'auto', objectFit: 'contain' }}
             />
 
             {/* Combined Brand Label */}
             <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '2px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', letterSpacing: '0.04em', lineHeight: 1.1 }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
                 WALLCANO × SURFACES
               </span>
               <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--surfaces-gold)', lineHeight: 1 }}>
@@ -187,14 +190,15 @@ export default function DashboardLayout({
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
-              flex: '1 1 300px',
-              maxWidth: '440px',
+              flex: '1 1 200px',
+              minWidth: '150px',
+              maxWidth: '340px',
             }}
           >
             <Search
-              size={15}
+              size={14}
               color="#94A3B8"
-              style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}
+              style={{ position: 'absolute', left: '11px', pointerEvents: 'none' }}
             />
             <input
               type="text"
@@ -206,11 +210,11 @@ export default function DashboardLayout({
               }}
               style={{
                 width: '100%',
-                padding: '8px 12px 8px 36px',
+                padding: '7px 12px 7px 32px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-subtle)',
                 background: 'var(--bg-input)',
-                fontSize: '13px',
+                fontSize: '12px',
                 color: 'var(--text-main)',
                 outline: 'none',
                 transition: 'all 0.15s ease',
@@ -234,8 +238,9 @@ export default function DashboardLayout({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
+              gap: '6px',
+              flexWrap: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {/* QuickBooks Connect & Status Button */}
@@ -249,7 +254,7 @@ export default function DashboardLayout({
                 disabled={isRefreshing}
                 className="btn btn-secondary"
                 title="Sync with QuickBooks"
-                style={{ padding: '7px 12px', fontSize: '12px' }}
+                style={{ padding: '6px 11px', fontSize: '12px', whiteSpace: 'nowrap' }}
               >
                 <RefreshCw
                   size={13}
@@ -268,17 +273,18 @@ export default function DashboardLayout({
             {/* User Profile & Sign Out */}
             {user && (
               <>
-                <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)', margin: '0 4px' }} />
+                <div style={{ height: '22px', width: '1px', background: 'var(--border-subtle)', margin: '0 2px' }} />
 
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
-                    padding: '4px 10px 4px 6px',
+                    gap: '8px',
+                    padding: '3px 8px 3px 5px',
                     borderRadius: '20px',
                     background: 'var(--bg-subtle)',
                     border: '1px solid var(--border-subtle)',
+                    flexShrink: 0,
                   }}
                 >
                   {/* Initials Avatar */}
