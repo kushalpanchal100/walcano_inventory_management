@@ -73,8 +73,8 @@ async def get_ai_status():
         "configured": is_conf,
         "provider": "gemini" if is_conf else "heuristic",
         "model": gemini_provider.model_name,
-        "mode_label": "Google Gemini 2.5 Flash" if is_conf else "Smart Local Assistant",
-        "notice": None if is_conf else "Using high-accuracy local heuristics. Set GEMINI_API_KEY in backend/.env for full live Gemini reasoning.",
+        "mode_label": "AI Live Engine" if is_conf else "Smart Local Assistant",
+        "notice": None if is_conf else "Using high-accuracy local heuristics. Set API key in backend/.env for full live AI reasoning.",
         "services": [
             "InventoryCopilotService",
             "ProductAutoMapperService",

@@ -162,7 +162,7 @@ export async function getLiveInventory(params?: {
 
 export interface AiStatusResponse {
   configured: boolean;
-  provider: 'gemini' | 'heuristic';
+  provider: string;
   model: string;
   mode_label: string;
   notice?: string | null;
@@ -194,7 +194,7 @@ export async function getAiStatus(): Promise<AiStatusResponse> {
   return {
     configured: false,
     provider: 'heuristic',
-    model: 'gemini-2.5-flash',
+    model: 'ai-engine',
     mode_label: 'Smart Local Assistant',
     notice: 'Using local heuristic intelligence.',
   };

@@ -76,7 +76,7 @@ export default function ManualMapModal({
     }
   };
 
-  const handleAutoMapWithGemini = async () => {
+  const handleAutoMapWithAi = async () => {
     if (!walcanoName) return;
     setIsGeneratingWithAi(true);
     setErrorMessage(null);
@@ -90,10 +90,10 @@ export default function ManualMapModal({
       if (res.success && res.surfaces_name) {
         setSurfacesName(res.surfaces_name);
       } else {
-        setErrorMessage(res.message || 'Gemini auto-mapping failed.');
+        setErrorMessage(res.message || 'AI auto-mapping failed.');
       }
     } catch (err: any) {
-      setErrorMessage(`Error generating name with Gemini: ${err.message || err}`);
+      setErrorMessage(`Error generating name with AI: ${err.message || err}`);
     } finally {
       setIsGeneratingWithAi(false);
     }
@@ -216,7 +216,7 @@ export default function ManualMapModal({
 
                 <button
                   type="button"
-                  onClick={handleAutoMapWithGemini}
+                  onClick={handleAutoMapWithAi}
                   disabled={isGeneratingWithAi || isSaving}
                   style={{
                     padding: '3px 8px',
@@ -232,10 +232,10 @@ export default function ManualMapModal({
                     cursor: isGeneratingWithAi || isSaving ? 'not-allowed' : 'pointer',
                     opacity: isGeneratingWithAi || isSaving ? 0.7 : 1,
                   }}
-                  title="Generate a brand-compliant, unique Surfaces product name for this product using Gemini AI"
+                  title="Generate a brand-compliant, unique Surfaces product name for this product using AI"
                 >
                   <Sparkles size={11} className={isGeneratingWithAi ? 'animate-spin' : ''} />
-                  <span>{isGeneratingWithAi ? 'Generating...' : '✨ Auto-Map with Gemini'}</span>
+                  <span>{isGeneratingWithAi ? 'Generating...' : '✨ Auto-Map with AI'}</span>
                 </button>
               </div>
               <input

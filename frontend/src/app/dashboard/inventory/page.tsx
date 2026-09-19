@@ -1126,9 +1126,9 @@ export default function QuickBooksInventoryPage() {
                                   <span className="pill pill-neutral" style={{ fontSize: '9px', padding: '1px 5px', background: '#F1F5F9', color: '#475569' }}>
                                     ✍️ Manual
                                   </span>
-                                ) : item.mapping_note && item.mapping_note.toLowerCase().includes('gemini') ? (
+                                ) : item.mapping_note && (item.mapping_note.toLowerCase().includes('gemini') || item.mapping_note.toLowerCase().includes('ai')) ? (
                                   <span className="pill pill-ai" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                                    ✨ Gemini AI
+                                    ✨ AI Mapped
                                   </span>
                                 ) : null}
                               </div>
@@ -1159,7 +1159,7 @@ export default function QuickBooksInventoryPage() {
                                   gap: '4px',
                                   cursor: 'pointer',
                                 }}
-                                title="Re-run Auto Mapping: generate a fresh unique Surfaces name with Gemini AI"
+                                title="Re-run Auto Mapping: generate a fresh unique Surfaces name with AI"
                               >
                                 <Sparkles size={10} />
                                 <span>Auto Mapping</span>
@@ -1189,10 +1189,10 @@ export default function QuickBooksInventoryPage() {
                                 gap: '4px',
                                 cursor: 'pointer',
                               }}
-                              title="Auto-map this specific product and generate a unique Surfaces Tiles product name using Gemini AI"
+                              title="Auto-map this specific product and generate a unique Surfaces Tiles product name using AI"
                             >
                               <Sparkles size={10} />
-                              <span>Auto-Map (Gemini)</span>
+                              <span>Auto-Map</span>
                             </button>
                             <button
                               type="button"

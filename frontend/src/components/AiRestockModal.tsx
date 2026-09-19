@@ -83,7 +83,7 @@ export default function AiRestockModal({
                   AI Inventory Health & Restock Insights
                 </h3>
                 <span className="pill pill-ai">
-                  {data?.provider === 'gemini' ? 'Gemini 2.5 Live' : 'Heuristic Forecasting'}
+                  {data?.provider === 'gemini' ? 'AI Live Engine' : 'Heuristic Forecasting'}
                 </span>
               </div>
               <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>

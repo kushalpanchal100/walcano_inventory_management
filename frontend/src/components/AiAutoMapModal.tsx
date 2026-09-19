@@ -182,7 +182,7 @@ export default function AiAutoMapModal({
       if (targetName) {
         setSelectedWalcanoName(targetName);
         setSelectedMappingResult(null);
-        // Automatically run Gemini Auto-Mapping for this specific product
+        // Automatically run AI Auto-Mapping for this specific product
         runAutoMap(targetName, targetItem?.sku, targetItem?.category);
       } else if (availableWalcanoProducts.length > 0) {
         // Pre-select first unmapped product if available
@@ -232,7 +232,7 @@ export default function AiAutoMapModal({
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   AI Product Auto-Mapper
                 </h3>
-                <span className="pill pill-ai">Gemini AI</span>
+                <span className="pill pill-ai">AI Assisted</span>
                 <span
                   style={{
                     fontSize: '11px',
@@ -355,7 +355,7 @@ export default function AiAutoMapModal({
                 {isMappingSelected ? (
                   <>
                     <RefreshCw size={14} className="animate-spin" />
-                    <span>Gemini AI Generating...</span>
+                    <span>AI Generating...</span>
                   </>
                 ) : (
                   <>
@@ -418,7 +418,7 @@ export default function AiAutoMapModal({
                 }}
               />
               <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#78350F', marginBottom: '6px' }}>
-                Gemini AI is Generating Unique Surfaces Product Name...
+                AI is Generating Unique Surfaces Product Name...
               </h4>
               <p style={{ fontSize: '12px', color: '#92400E', maxWidth: '520px', margin: '0 auto' }}>
                 Analyzing dimensions, finish, tone, and luxury collection syntax strictly for <strong>"{selectedWalcanoName}"</strong> to ensure a unique, non-colliding catalog entry.
@@ -598,7 +598,7 @@ export default function AiAutoMapModal({
                     disabled={isMappingSelected}
                     className="btn btn-secondary"
                     style={{ fontSize: '11px', padding: '5px 12px', color: '#7C3AED', borderColor: '#DDD6FE', background: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    title="Regenerate another unique variant with Gemini AI"
+                    title="Regenerate another unique variant with AI"
                   >
                     <RefreshCw size={12} className={isMappingSelected ? 'animate-spin' : ''} />
                     <span>Regenerate Unique Name</span>
@@ -621,7 +621,7 @@ export default function AiAutoMapModal({
                 Ready to Auto-Map "{selectedWalcanoName}"
               </h4>
               <p style={{ fontSize: '12px', color: '#64748B', maxWidth: '420px', margin: '0 auto 14px' }}>
-                Automatically generate a unique Surfaces Tiles product name using Gemini AI, or enter your own custom name manually.
+                Automatically generate a unique Surfaces Tiles product name using AI, or enter your own custom name manually.
               </p>
 
               {isEditingManually ? (
@@ -690,7 +690,7 @@ export default function AiAutoMapModal({
                     style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 800 }}
                   >
                     <Sparkles size={14} />
-                    <span>Auto-Match with Gemini AI</span>
+                    <span>Auto-Match with AI</span>
                   </button>
                   <button
                     type="button"

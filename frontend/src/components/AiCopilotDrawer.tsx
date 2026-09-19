@@ -249,7 +249,7 @@ export default function AiCopilotDrawer({
             }}
           >
             <Info size={13} color="#D97706" style={{ flexShrink: 0 }} />
-            <span>High-accuracy local reasoning active. Connect Gemini API key in backend for multi-turn models.</span>
+            <span>High-accuracy local reasoning active. Connect AI API key in backend for multi-turn models.</span>
           </div>
         )}
 
