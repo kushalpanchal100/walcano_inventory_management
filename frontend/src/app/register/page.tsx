@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Lock, Mail, User as UserIcon, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import DynamicBrandBackground from '@/components/DynamicBrandBackground';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -66,42 +67,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(145deg, #0F172A 0%, #1E293B 45%, #0B1120 100%)',
-        padding: '32px 20px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Subtle luxury ambient glows */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '-100px',
-          left: '-100px',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(184, 134, 11, 0.14) 0%, rgba(184, 134, 11, 0) 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-        }}
-      />
-
+    <DynamicBrandBackground style={{ padding: '32px 20px' }}>
       <div
         style={{
           width: '100%',
           maxWidth: '460px',
-          background: '#FFFFFF',
-          borderRadius: '18px',
-          border: '1px solid rgba(223, 191, 119, 0.3)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 35px rgba(184, 134, 11, 0.12)',
-          padding: '36px 36px',
+          background: 'rgba(255, 255, 255, 0.98)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '20px',
+          border: '1px solid rgba(223, 191, 119, 0.38)',
+          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.5), 0 0 35px rgba(184, 134, 11, 0.16)',
+          padding: '38px 36px',
           position: 'relative',
           zIndex: 10,
         }}
@@ -522,6 +499,25 @@ export default function RegisterPage() {
         </div>
       </div>
 
+      {/* Enterprise Platform Badge */}
+      <div
+        style={{
+          marginTop: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '12px',
+          color: 'rgba(255, 255, 255, 0.45)',
+          letterSpacing: '0.02em',
+        }}
+      >
+        <span style={{ color: 'var(--surfaces-gold)', fontWeight: 600 }}>Wallcano</span>
+        <span>•</span>
+        <span style={{ color: 'var(--surfaces-gold-light)', fontWeight: 600 }}>Surfaces Tiles</span>
+        <span>•</span>
+        <span>Enterprise Inventory</span>
+      </div>
+
       <style jsx>{`
         @keyframes spin {
           to {
@@ -529,6 +525,6 @@ export default function RegisterPage() {
           }
         }
       `}</style>
-    </div>
+    </DynamicBrandBackground>
   );
 }

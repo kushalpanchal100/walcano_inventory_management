@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import DynamicBrandBackground from '@/components/DynamicBrandBackground';
 
 function LoginForm() {
   const router = useRouter();
@@ -50,53 +51,17 @@ function LoginForm() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(145deg, #0F172A 0%, #1E293B 45%, #0B1120 100%)',
-        padding: '24px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Subtle luxury geometric background glow */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '-150px',
-          right: '-150px',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(184, 134, 11, 0.15) 0%, rgba(184, 134, 11, 0) 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '-120px',
-          left: '-120px',
-          width: '450px',
-          height: '450px',
-          background: 'radial-gradient(circle, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0) 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-        }}
-      />
-
+    <DynamicBrandBackground style={{ padding: '24px' }}>
       <div
         style={{
           width: '100%',
           maxWidth: '440px',
-          background: '#FFFFFF',
-          borderRadius: '18px',
-          border: '1px solid rgba(223, 191, 119, 0.3)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 35px rgba(184, 134, 11, 0.12)',
+          background: 'rgba(255, 255, 255, 0.98)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '20px',
+          border: '1px solid rgba(223, 191, 119, 0.38)',
+          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.5), 0 0 35px rgba(184, 134, 11, 0.16)',
           padding: '40px 36px',
           position: 'relative',
           zIndex: 10,
@@ -397,6 +362,25 @@ function LoginForm() {
         </div>
       </div>
 
+      {/* Enterprise Platform Badge */}
+      <div
+        style={{
+          marginTop: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '12px',
+          color: 'rgba(255, 255, 255, 0.45)',
+          letterSpacing: '0.02em',
+        }}
+      >
+        <span style={{ color: 'var(--surfaces-gold)', fontWeight: 600 }}>Wallcano</span>
+        <span>•</span>
+        <span style={{ color: 'var(--surfaces-gold-light)', fontWeight: 600 }}>Surfaces Tiles</span>
+        <span>•</span>
+        <span>Enterprise Inventory</span>
+      </div>
+
       <style jsx>{`
         @keyframes spin {
           to {
@@ -404,7 +388,7 @@ function LoginForm() {
           }
         }
       `}</style>
-    </div>
+    </DynamicBrandBackground>
   );
 }
 
@@ -412,15 +396,18 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div
-          style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(145deg, #0F172A 0%, #1E293B 45%, #0B1120 100%)',
-          }}
-        />
+        <DynamicBrandBackground>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              border: '3px solid rgba(255, 255, 255, 0.2)',
+              borderTopColor: 'var(--surfaces-gold)',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+        </DynamicBrandBackground>
       }
     >
       <LoginForm />
