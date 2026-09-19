@@ -61,12 +61,20 @@ export default function QuickBooksInventoryPage() {
     message: string;
   } | null>(null);
   const [selectedWalcanoForModal, setSelectedWalcanoForModal] = useState<string | null>(null);
+  const [targetItemForModal, setTargetItemForModal] = useState<QuickBooksInventoryItem | null>(null);
   const [mappingItemId, setMappingItemId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{
     text: string;
     type: 'success' | 'info' | 'error';
     surfacesName?: string;
   } | null>(null);
+
+  const openAutoMapModalForItem = (item: QuickBooksInventoryItem) => {
+    const walcanoName = (item.walcano_name || item.name || '').trim();
+    setSelectedWalcanoForModal(walcanoName);
+    setTargetItemForModal(item);
+    setIsAutoMapOpen(true);
+  };
 
   const handleRowAutoMapping = async (item: QuickBooksInventoryItem) => {
     const walcanoName = item.walcano_name || item.name;
@@ -1149,8 +1157,7 @@ export default function QuickBooksInventoryPage() {
                             </div>
                             <button
                               type="button"
-                              onClick={() => handleRowAutoMapping(item)}
-                              disabled={mappingItemId === (item.id || item.sku || item.name)}
+                              onClick={() => openAutoMapModalForItem(item)}
                               className="btn btn-secondary"
                               style={{
                                 padding: '3px 8px',
@@ -1168,11 +1175,7 @@ export default function QuickBooksInventoryPage() {
                               }}
                               title="Re-run Auto Mapping: generate a fresh unique Surfaces name with Gemini AI"
                             >
-                              {mappingItemId === (item.id || item.sku || item.name) ? (
-                                <RefreshCw size={10} className="animate-spin" />
-                              ) : (
-                                <Sparkles size={10} />
-                              )}
+                              <Sparkles size={10} />
                               <span>Auto Mapping</span>
                             </button>
                           </div>
@@ -1184,8 +1187,7 @@ export default function QuickBooksInventoryPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleRowAutoMapping(item)}
-                              disabled={mappingItemId === (item.id || item.sku || item.name)}
+                              onClick={() => openAutoMapModalForItem(item)}
                               className="btn btn-ai"
                               style={{
                                 padding: '4px 10px',
@@ -1197,19 +1199,10 @@ export default function QuickBooksInventoryPage() {
                                 borderRadius: '6px',
                                 cursor: 'pointer',
                               }}
-                              title="Auto-map to Walcano product and generate a unique Surfaces Tiles product name using Gemini AI"
+                              title="Auto-map this specific Walcano product and generate a unique Surfaces Tiles product name using Gemini AI"
                             >
-                              {mappingItemId === (item.id || item.sku || item.name) ? (
-                                <>
-                                  <RefreshCw size={11} className="animate-spin" />
-                                  <span>Generating...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles size={11} />
-                                  <span>Auto Mapping</span>
-                                </>
-                              )}
+                              <Sparkles size={11} />
+                              <span>Auto Mapping</span>
                             </button>
                           </div>
                         )}
@@ -1284,11 +1277,13 @@ export default function QuickBooksInventoryPage() {
         onClose={() => {
           setIsAutoMapOpen(false);
           setSelectedWalcanoForModal(null);
+          setTargetItemForModal(null);
         }}
         onMappingApplied={() => loadInventory(isDemoMode, true)}
         isDemoMode={isDemoMode}
         inventoryItems={items}
         initialSelectedWalcanoName={selectedWalcanoForModal}
+        targetItem={targetItemForModal}
       />
 
       <AiRestockModal

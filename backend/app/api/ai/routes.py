@@ -91,7 +91,8 @@ async def chat_with_copilot(req: ChatRequest):
     """
     try:
         # Fetch current live inventory
-        inv_data = await _qbo_client.fetch_live_inventory(include_demo=req.demo or True)
+        valid_auth = await _qbo_client.get_valid_access_token()
+        inv_data = await _qbo_client.fetch_live_inventory(include_demo=req.demo or not bool(valid_auth))
         items = inv_data.get("items", [])
 
         result = await copilot_service.chat(
@@ -117,7 +118,8 @@ async def generate_auto_mappings(
     with unique Surfaces Tiles product names generated via Gemini AI.
     """
     try:
-        inv_data = await _qbo_client.fetch_live_inventory(include_demo=demo or True)
+        valid_auth = await _qbo_client.get_valid_access_token()
+        inv_data = await _qbo_client.fetch_live_inventory(include_demo=demo or not bool(valid_auth))
         items = inv_data.get("items", [])
         unmapped = [it for it in items if not it.get("is_mapped", False)]
 

@@ -5,23 +5,16 @@ import {
   Sparkles,
   X,
   Check,
-  CheckCheck,
   RefreshCw,
-  Layers,
-  ArrowRight,
-  Info,
   HelpCircle,
   Link2,
-  Search,
   CheckCircle2,
   ShieldCheck,
+  Package,
+  Layers,
 } from 'lucide-react';
 import {
-  getAiAutoMappings,
-  acceptAiMapping,
   autoMapSingleProduct,
-  AiMappingSuggestion,
-  AiAutoMapResponse,
   QuickBooksInventoryItem,
 } from '@/lib/api';
 
@@ -32,6 +25,7 @@ interface AiAutoMapModalProps {
   isDemoMode?: boolean;
   inventoryItems?: QuickBooksInventoryItem[];
   initialSelectedWalcanoName?: string | null;
+  targetItem?: QuickBooksInventoryItem | null;
 }
 
 export default function AiAutoMapModal({
@@ -41,13 +35,8 @@ export default function AiAutoMapModal({
   isDemoMode = false,
   inventoryItems = [],
   initialSelectedWalcanoName = null,
+  targetItem = null,
 }: AiAutoMapModalProps) {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<AiAutoMapResponse | null>(null);
-  const [acceptedSet, setAcceptedSet] = useState<Set<string>>(new Set());
-  const [processingItem, setProcessingItem] = useState<string | null>(null);
-  const [batchProcessing, setBatchProcessing] = useState<boolean>(false);
-
   // Specific Walcano product selection state (Single Source of Truth)
   const [selectedWalcanoName, setSelectedWalcanoName] = useState<string>('');
   const [isMappingSelected, setIsMappingSelected] = useState<boolean>(false);
@@ -61,9 +50,16 @@ export default function AiAutoMapModal({
   } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Available unique Walcano product list
+  // Available unique Walcano product list strictly from active inventory
   const availableWalcanoProducts = useMemo(() => {
-    const list: Array<{ name: string; sku: string; category: string; is_mapped: boolean; surfaces_name?: string | null }> = [];
+    const list: Array<{
+      name: string;
+      sku: string;
+      category: string;
+      qty_on_hand?: number;
+      is_mapped: boolean;
+      surfaces_name?: string | null;
+    }> = [];
     const seen = new Set<string>();
 
     for (const item of inventoryItems) {
@@ -74,94 +70,50 @@ export default function AiAutoMapModal({
           name,
           sku: item.sku || '',
           category: item.category || 'Porcelain Tiles',
+          qty_on_hand: item.qty_on_hand,
           is_mapped: Boolean(item.is_mapped),
           surfaces_name: item.surfaces_name,
         });
       }
     }
-
-    // Add any from suggestion list not yet seen
-    if (data?.suggestions) {
-      for (const s of data.suggestions) {
-        if (s.walcano_name && !seen.has(s.walcano_name.toLowerCase())) {
-          seen.add(s.walcano_name.toLowerCase());
-          list.push({
-            name: s.walcano_name,
-            sku: '',
-            category: 'Porcelain Tiles',
-            is_mapped: false,
-          });
-        }
-      }
-    }
-
     return list;
-  }, [inventoryItems, data]);
+  }, [inventoryItems]);
 
   const selectedProductObj = useMemo(() => {
     if (!selectedWalcanoName) return null;
-    return (
-      availableWalcanoProducts.find(
-        (p) => p.name.toLowerCase() === selectedWalcanoName.toLowerCase()
-      ) || {
-        name: selectedWalcanoName,
-        sku: '',
-        category: 'Porcelain Tiles',
-        is_mapped: false,
-      }
+    const match = availableWalcanoProducts.find(
+      (p) => p.name.toLowerCase() === selectedWalcanoName.toLowerCase()
     );
-  }, [selectedWalcanoName, availableWalcanoProducts]);
-
-  const fetchSuggestions = async () => {
-    setLoading(true);
-    try {
-      const res = await getAiAutoMappings(isDemoMode);
-      setData(res);
-      setAcceptedSet(new Set());
-    } catch (err) {
-      console.error('Failed to fetch AI auto-mappings:', err);
-    } finally {
-      setLoading(false);
+    if (match) return match;
+    if (targetItem && (targetItem.walcano_name || targetItem.name)?.toLowerCase() === selectedWalcanoName.toLowerCase()) {
+      return {
+        name: selectedWalcanoName,
+        sku: targetItem.sku || '',
+        category: targetItem.category || 'Porcelain Tiles',
+        qty_on_hand: targetItem.qty_on_hand,
+        is_mapped: Boolean(targetItem.is_mapped),
+        surfaces_name: targetItem.surfaces_name,
+      };
     }
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchSuggestions();
-      setSelectedMappingResult(null);
-      setErrorMessage(null);
-
-      if (initialSelectedWalcanoName) {
-        setSelectedWalcanoName(initialSelectedWalcanoName);
-      } else if (availableWalcanoProducts.length > 0 && !selectedWalcanoName) {
-        // Pre-select first unmapped product if available, else first product
-        const firstUnmapped = availableWalcanoProducts.find((p) => !p.is_mapped);
-        setSelectedWalcanoName(firstUnmapped ? firstUnmapped.name : availableWalcanoProducts[0].name);
-      }
-    }
-  }, [isOpen, initialSelectedWalcanoName, isDemoMode]);
-
-  // Execute Auto Mapping for the SPECIFIC SELECTED Walcano product (Single Source of Truth)
-  const handleAutoMapSelected = async () => {
-    if (!selectedWalcanoName) {
-      setErrorMessage('Please select a specific Walcano product first.');
-      return;
-    }
-
-    setIsMappingSelected(true);
-    setErrorMessage(null);
-
-    const product = selectedProductObj || {
+    return {
       name: selectedWalcanoName,
       sku: '',
       category: 'Porcelain Tiles',
+      is_mapped: false,
     };
+  }, [selectedWalcanoName, availableWalcanoProducts, targetItem]);
+
+  // Execute Auto Mapping for a specific product
+  const runAutoMap = async (name: string, sku?: string, category?: string) => {
+    if (!name) return;
+    setIsMappingSelected(true);
+    setErrorMessage(null);
 
     try {
       const res = await autoMapSingleProduct({
-        walcano_name: product.name,
-        sku: product.sku,
-        category: product.category,
+        walcano_name: name,
+        sku: sku || undefined,
+        category: category || undefined,
         auto_save: true,
       });
 
@@ -174,7 +126,6 @@ export default function AiAutoMapModal({
           isUnique: res.is_unique,
           attributes: res.attributes,
         });
-        setAcceptedSet((prev) => new Set(prev).add(res.walcano_name));
         onMappingApplied();
       } else {
         setErrorMessage(res.message || 'Auto-mapping request failed.');
@@ -186,77 +137,48 @@ export default function AiAutoMapModal({
     }
   };
 
-  const handleSelectAndAutoMap = (item: { name: string; sku?: string; category?: string }) => {
-    setSelectedWalcanoName(item.name);
-    setSelectedMappingResult(null);
-    setErrorMessage(null);
-  };
+  useEffect(() => {
+    if (isOpen) {
+      setErrorMessage(null);
+      const targetName =
+        (targetItem?.walcano_name || targetItem?.name || initialSelectedWalcanoName || '').trim();
 
-  const handleAcceptSuggestion = async (item: AiMappingSuggestion) => {
-    setProcessingItem(item.walcano_name);
-    try {
-      const res = await acceptAiMapping(
-        item.walcano_name,
-        item.suggested_surfaces_name,
-        item.confidence,
-        item.reasoning
-      );
-      if (res.success) {
-        setAcceptedSet((prev) => new Set(prev).add(item.walcano_name));
-        onMappingApplied();
-      } else {
-        alert(`Failed to save mapping: ${res.message}`);
+      if (targetName) {
+        setSelectedWalcanoName(targetName);
+        setSelectedMappingResult(null);
+        // Automatically run Gemini Auto-Mapping for this specific product
+        runAutoMap(targetName, targetItem?.sku, targetItem?.category);
+      } else if (availableWalcanoProducts.length > 0) {
+        // Pre-select first unmapped product if available
+        const firstUnmapped = availableWalcanoProducts.find((p) => !p.is_mapped);
+        const fallback = firstUnmapped ? firstUnmapped.name : availableWalcanoProducts[0].name;
+        setSelectedWalcanoName(fallback);
+        setSelectedMappingResult(null);
       }
-    } catch (err: any) {
-      alert(`Error saving mapping: ${err.message || err}`);
-    } finally {
-      setProcessingItem(null);
+    } else {
+      setSelectedMappingResult(null);
+      setErrorMessage(null);
+      setIsMappingSelected(false);
     }
-  };
-
-  const handleAcceptAllHighConfidence = async () => {
-    if (!data?.suggestions) return;
-    const highConf = data.suggestions.filter(
-      (s) => s.confidence >= 0.8 && !acceptedSet.has(s.walcano_name)
-    );
-    if (highConf.length === 0) return;
-
-    setBatchProcessing(true);
-    try {
-      for (const item of highConf) {
-        await acceptAiMapping(
-          item.walcano_name,
-          item.suggested_surfaces_name,
-          item.confidence,
-          item.reasoning
-        );
-        setAcceptedSet((prev) => new Set(prev).add(item.walcano_name));
-      }
-      onMappingApplied();
-    } catch (err: any) {
-      console.error('Batch accept error:', err);
-    } finally {
-      setBatchProcessing(false);
-    }
-  };
+  }, [isOpen, initialSelectedWalcanoName, targetItem]);
 
   if (!isOpen) return null;
 
-  const suggestions = data?.suggestions || [];
-  const highConfidenceCount = suggestions.filter(
-    (s) => s.confidence >= 0.8 && !acceptedSet.has(s.walcano_name)
-  ).length;
+  // Unmapped products from current inventory excluding currently selected
+  const otherUnmappedProducts = availableWalcanoProducts.filter(
+    (p) => !p.is_mapped && p.name.toLowerCase() !== selectedWalcanoName.toLowerCase()
+  );
 
   return (
     <div className={`ai-modal-backdrop ${isOpen ? 'open' : ''}`}>
-      <div className="ai-modal-container" style={{ maxWidth: '900px' }}>
+      <div className="ai-modal-container" style={{ maxWidth: '850px' }}>
         {/* Header */}
         <div className="ai-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                width: '40px',
-                height: '40px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '10px',
                 background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
                 display: 'flex',
@@ -264,188 +186,156 @@ export default function AiAutoMapModal({
                 justifyContent: 'center',
                 color: '#FFFFFF',
                 boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+                flexShrink: 0,
               }}
             >
               <Sparkles size={22} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                  AI Auto-Mapping Studio
+                  AI Product Auto-Mapper
                 </h3>
                 <span className="pill pill-ai">Gemini AI</span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    background: '#EDE9FE',
+                    color: '#6D28D9',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Strict 1:1 Mapping
+                </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                Select a specific Walcano product as the single source of truth to automatically map and generate its unique Surfaces Tiles product name.
+              <p style={{ fontSize: '12px', color: '#64748B', marginTop: '3px' }}>
+                The selected Walcano product is the <strong>single source of truth</strong> for generating the unique Surfaces Tiles product name.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={fetchSuggestions}
-              disabled={loading}
-              title="Rescan catalog"
-              className="btn btn-secondary"
-              style={{ padding: '7px 10px' }}
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-secondary"
-              style={{ padding: '7px 10px' }}
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary"
+            style={{ padding: '7px 10px' }}
+            title="Close"
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        {/* ─── WORKFLOW SECTION: SELECT SPECIFIC WALCANO PRODUCT & AUTO-MAP ─── */}
-        <div
-          style={{
-            padding: '20px 24px',
-            background: 'linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%)',
-            borderBottom: '2px solid #E2E8F0',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <span
-              style={{
-                background: '#7C3AED',
-                color: '#FFFFFF',
-                width: '22px',
-                height: '22px',
-                borderRadius: '50%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: 800,
-              }}
-            >
-              1
-            </span>
-            <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
-              Select Specific Walcano Product (Single Source of Truth)
-            </span>
-            <span
-              style={{
-                fontSize: '11px',
-                background: '#EDE9FE',
-                color: '#6D28D9',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontWeight: 700,
-              }}
-            >
-              Strict 1:1 Mapping
-            </span>
-          </div>
+        {/* Modal Body */}
+        <div className="ai-modal-body" style={{ padding: '24px' }}>
+          {/* ─── 1. SELECTED WALCANO PRODUCT (SINGLE SOURCE OF TRUTH) ─── */}
+          <div
+            style={{
+              padding: '16px 20px',
+              borderRadius: '12px',
+              background: '#F8FAFC',
+              border: '1.5px solid #E2E8F0',
+              marginBottom: '20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="pill pill-wallcano" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                  SOURCE WALCANO PRODUCT
+                </span>
+                <span style={{ fontSize: '11px', color: '#64748B' }}>
+                  Single Source of Truth
+                </span>
+              </div>
 
-          {/* Product Dropdown Selector */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
-            <div style={{ flex: 1, minWidth: '280px' }}>
-              <select
-                value={selectedWalcanoName}
-                onChange={(e) => {
-                  setSelectedWalcanoName(e.target.value);
-                  setSelectedMappingResult(null);
-                  setErrorMessage(null);
-                }}
-                disabled={isMappingSelected}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1.5px solid #CBD5E1',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#0F172A',
-                  background: '#FFFFFF',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                }}
-              >
-                <option value="">-- Choose a specific Walcano product --</option>
-                {availableWalcanoProducts.map((p, i) => (
-                  <option key={i} value={p.name}>
-                    {p.name} {p.sku ? `(${p.sku})` : ''} {p.is_mapped ? '✓ [Already Mapped]' : '⚠️ [Unmapped]'}
-                  </option>
-                ))}
-              </select>
+              {selectedProductObj?.is_mapped && (
+                <span style={{ fontSize: '11px', color: '#16A34A', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={14} />
+                  Currently Mapped
+                </span>
+              )}
             </div>
 
-            {/* Auto Mapping Button */}
-            <button
-              type="button"
-              onClick={handleAutoMapSelected}
-              disabled={isMappingSelected || !selectedWalcanoName}
-              className="btn btn-ai"
-              style={{
-                padding: '10px 22px',
-                fontSize: '13px',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.3)',
-              }}
-            >
-              {isMappingSelected ? (
-                <>
-                  <RefreshCw size={15} className="animate-spin" />
-                  <span>Gemini AI Generating Name...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={15} />
-                  <span>Auto Mapping</span>
-                </>
-              )}
-            </button>
-          </div>
+            {/* Product Switcher / Selector */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <select
+                  value={selectedWalcanoName}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    setSelectedWalcanoName(newName);
+                    setSelectedMappingResult(null);
+                    setErrorMessage(null);
+                    const prod = availableWalcanoProducts.find((p) => p.name === newName);
+                    runAutoMap(newName, prod?.sku, prod?.category);
+                  }}
+                  disabled={isMappingSelected}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #CBD5E1',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#0F172A',
+                    background: '#FFFFFF',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  {availableWalcanoProducts.length === 0 && (
+                    <option value={selectedWalcanoName}>{selectedWalcanoName}</option>
+                  )}
+                  {availableWalcanoProducts.map((p, i) => (
+                    <option key={i} value={p.name}>
+                      {p.name} {p.sku ? `(${p.sku})` : ''} {p.is_mapped ? '✓ [Mapped]' : '⚠️ [Unmapped]'}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Selected Product Details Card */}
-          {selectedProductObj && (
-            <div
-              style={{
-                padding: '14px 18px',
-                borderRadius: '10px',
-                background: '#FFFFFF',
-                border: '1.5px solid #E2E8F0',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="pill pill-wallcano" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                    SELECTED WALCANO SOURCE
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#64748B' }}>
-                    Single source of truth for Gemini AI
-                  </span>
-                </div>
-                {selectedProductObj.is_mapped && (
-                  <span style={{ fontSize: '11px', color: '#16A34A', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle2 size={13} />
-                    Currently Mapped in Catalog
-                  </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const prod = selectedProductObj;
+                  runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
+                }}
+                disabled={isMappingSelected || !selectedWalcanoName}
+                className="btn btn-ai"
+                style={{
+                  padding: '10px 18px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)',
+                }}
+              >
+                {isMappingSelected ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Gemini AI Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    <span>Auto Mapping</span>
+                  </>
                 )}
-              </div>
+              </button>
+            </div>
 
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', marginBottom: '6px' }}>
-                {selectedProductObj.name}
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: '#475569', flexWrap: 'wrap' }}>
+            {/* Product Meta Details */}
+            {selectedProductObj && (
+              <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#475569', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px solid #E2E8F0' }}>
                 {selectedProductObj.sku && (
                   <span>
-                    <strong>SKU:</strong> {selectedProductObj.sku}
+                    <strong>SKU:</strong> <code style={{ color: '#0F172A', background: '#E2E8F0', padding: '1px 5px', borderRadius: '4px' }}>{selectedProductObj.sku}</code>
                   </span>
                 )}
                 {selectedProductObj.category && (
@@ -453,34 +343,65 @@ export default function AiAutoMapModal({
                     <strong>Category:</strong> {selectedProductObj.category}
                   </span>
                 )}
+                {selectedProductObj.qty_on_hand !== undefined && (
+                  <span>
+                    <strong>Stock:</strong> {selectedProductObj.qty_on_hand.toLocaleString()}
+                  </span>
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Error message */}
+          {/* Error Message */}
           {errorMessage && (
-            <div style={{ marginTop: '12px', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', color: '#DC2626', fontSize: '12px' }}>
-              {errorMessage}
+            <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', color: '#DC2626', fontSize: '13px' }}>
+              <strong>Error:</strong> {errorMessage}
             </div>
           )}
 
-          {/* Generated Result Card (Derived Solely from Selected Walcano Product) */}
-          {selectedMappingResult && (
+          {/* ─── 2. GENERATED SURFACES TILES PRODUCT MATCH ─── */}
+          {isMappingSelected ? (
             <div
               style={{
-                marginTop: '16px',
-                padding: '16px 20px',
-                borderRadius: '10px',
+                padding: '36px 20px',
+                borderRadius: '12px',
                 background: '#FEFDF8',
-                border: '2px solid #F59E0B',
-                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.15)',
-                animation: 'fadeIn 0.25s ease',
+                border: '2px dashed #FDE68A',
+                textAlign: 'center',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  border: '3px solid #FDE68A',
+                  borderTopColor: '#B45309',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  margin: '0 auto 14px',
+                }}
+              />
+              <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#78350F', marginBottom: '6px' }}>
+                Gemini AI is Generating Unique Surfaces Product Name...
+              </h4>
+              <p style={{ fontSize: '12px', color: '#92400E', maxWidth: '520px', margin: '0 auto' }}>
+                Analyzing dimensions, finish, tone, and luxury collection syntax strictly for <strong>"{selectedWalcanoName}"</strong> to ensure a unique, non-colliding catalog entry.
+              </p>
+            </div>
+          ) : selectedMappingResult ? (
+            <div
+              style={{
+                padding: '20px 24px',
+                borderRadius: '12px',
+                background: '#FEFDF8',
+                border: '2px solid #F59E0B',
+                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.12)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="pill pill-surfaces" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                    GENERATED SURFACES TILES PRODUCT
+                    MAPPED SURFACES TILES PRODUCT
                   </span>
                   <span
                     style={{
@@ -498,238 +419,145 @@ export default function AiAutoMapModal({
                 <span
                   style={{
                     fontSize: '11px',
-                    fontWeight: 700,
+                    fontWeight: 800,
                     background: '#FEF3C7',
                     color: '#B45309',
                     padding: '2px 8px',
                     borderRadius: '12px',
                   }}
                 >
-                  {Math.round(selectedMappingResult.confidence * 100)}% Confidence
+                  {Math.round(selectedMappingResult.confidence * 100)}% Match
                 </span>
               </div>
 
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#78350F', marginBottom: '8px' }}>
+              {/* Unique Generated Name */}
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#78350F', marginBottom: '10px', lineHeight: '1.3' }}>
                 {selectedMappingResult.surfacesName}
               </div>
 
+              {/* Attribute Badges */}
               {selectedMappingResult.attributes && (
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
                   {selectedMappingResult.attributes.dimensions && (
-                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: '6px', color: '#78350F', fontWeight: 600 }}>
+                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '3px 9px', borderRadius: '6px', color: '#78350F', fontWeight: 700 }}>
                       📐 {selectedMappingResult.attributes.dimensions}
                     </span>
                   )}
                   {selectedMappingResult.attributes.finish && (
-                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: '6px', color: '#78350F', fontWeight: 600 }}>
+                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '3px 9px', borderRadius: '6px', color: '#78350F', fontWeight: 700 }}>
                       ✨ {selectedMappingResult.attributes.finish}
                     </span>
                   )}
                   {selectedMappingResult.attributes.collection && (
-                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: '6px', color: '#92400E', fontWeight: 700 }}>
-                      🏛️ {selectedMappingResult.attributes.collection}
+                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '3px 9px', borderRadius: '6px', color: '#92400E', fontWeight: 800 }}>
+                      🏛️ {selectedMappingResult.attributes.collection} Collection
+                    </span>
+                  )}
+                  {selectedMappingResult.attributes.tile_type && (
+                    <span style={{ fontSize: '11px', background: '#FFFFFF', border: '1px solid #FDE68A', padding: '3px 9px', borderRadius: '6px', color: '#78350F', fontWeight: 600 }}>
+                      📦 {selectedMappingResult.attributes.tile_type}
                     </span>
                   )}
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingTop: '8px', borderTop: '1px dashed #FDE68A' }}>
+              {/* Reasoning Description */}
+              <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '16px', background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #FDE68A' }}>
+                <Sparkles size={14} color="#7C3AED" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{selectedMappingResult.reasoning}</span>
+              </div>
+
+              {/* Status and Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingTop: '10px', borderTop: '1px dashed #FDE68A' }}>
                 <span style={{ fontSize: '12px', color: '#16A34A', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldCheck size={16} />
-                  Mapped and saved directly to catalog for "{selectedMappingResult.walcanoName}"
+                  Mapping successfully saved to catalog and synchronized with inventory!
                 </span>
+
                 <button
                   type="button"
-                  onClick={handleAutoMapSelected}
+                  onClick={() => {
+                    const prod = selectedProductObj;
+                    runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
+                  }}
                   disabled={isMappingSelected}
                   className="btn btn-secondary"
-                  style={{ fontSize: '11px', padding: '4px 10px', color: '#7C3AED' }}
+                  style={{ fontSize: '11px', padding: '5px 12px', color: '#7C3AED', borderColor: '#DDD6FE', background: '#FFFFFF' }}
+                  title="Regenerate another unique variant with Gemini AI"
                 >
-                  <RefreshCw size={11} className={isMappingSelected ? 'animate-spin' : ''} />
-                  <span>Regenerate for this Walcano product</span>
+                  <RefreshCw size={12} className={isMappingSelected ? 'animate-spin' : ''} />
+                  <span>Regenerate Unique Name</span>
                 </button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* ─── CATALOG OVERVIEW & QUICK SELECTION ──────────────────────── */}
-        <div
-          style={{
-            padding: '12px 24px',
-            background: '#FFFFFF',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#475569' }}>
-            <span style={{ fontWeight: 800, color: '#0F172A' }}>
-              Catalog Suggestions & Unmapped Queue
-            </span>
-            <span>·</span>
-            <span>{suggestions.length} items ready for review</span>
-          </div>
-
-          {highConfidenceCount > 0 && (
-            <button
-              type="button"
-              onClick={handleAcceptAllHighConfidence}
-              disabled={batchProcessing}
-              className="btn btn-ai"
-              style={{ padding: '6px 14px', fontSize: '12px' }}
-            >
-              <CheckCheck size={14} />
-              <span>Accept High Confidence ({highConfidenceCount})</span>
-            </button>
-          )}
-        </div>
-
-        {/* Suggestions List */}
-        <div className="ai-modal-body">
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  border: '3px solid #E2E8F0',
-                  borderTopColor: '#7C3AED',
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite',
-                  margin: '0 auto 16px',
-                }}
-              />
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
-                Analyzing tile catalog with Gemini AI...
-              </p>
-            </div>
-          ) : suggestions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <CheckCircle2 size={36} color="#16A34A" style={{ margin: '0 auto 12px' }} />
-              <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-                All Catalog Items Mapped
-              </h4>
-              <p style={{ fontSize: '12px', color: '#64748B', maxWidth: '420px', margin: '0 auto' }}>
-                Every QuickBooks inventory product is currently linked. You can still select any product above to regenerate its unique Surfaces name.
-              </p>
-            </div>
           ) : (
-            suggestions.map((item, idx) => {
-              const isAccepted = acceptedSet.has(item.walcano_name);
-              const isProcessing = processingItem === item.walcano_name;
-              const isCurrentlySelected = selectedWalcanoName.toLowerCase() === item.walcano_name.toLowerCase();
+            <div
+              style={{
+                padding: '32px 20px',
+                borderRadius: '12px',
+                background: '#F8FAFC',
+                border: '1.5px dashed #CBD5E1',
+                textAlign: 'center',
+              }}
+            >
+              <Layers size={32} color="#94A3B8" style={{ margin: '0 auto 10px' }} />
+              <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                Ready to Auto-Map "{selectedWalcanoName}"
+              </h4>
+              <p style={{ fontSize: '12px', color: '#64748B', maxWidth: '420px', margin: '0 auto 14px' }}>
+                Click below to analyze this product's specifications and generate a unique Surfaces Tiles product name using Gemini AI.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const prod = selectedProductObj;
+                  runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
+                }}
+                className="btn btn-ai"
+                style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 800 }}
+              >
+                <Sparkles size={14} />
+                <span>Generate Unique Name</span>
+              </button>
+            </div>
+          )}
 
-              return (
-                <div
-                  key={idx}
-                  className={`map-card ${isAccepted ? 'accepted' : ''}`}
-                  style={{
-                    borderColor: isCurrentlySelected ? '#7C3AED' : undefined,
-                    background: isCurrentlySelected ? '#FBF9FF' : undefined,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-                      {/* Walcano Product */}
-                      <div
-                        style={{
-                          padding: '10px 14px',
-                          background: '#F8FAFC',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                          <span className="pill pill-wallcano" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                            SOURCE WALCANO PRODUCT
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-                          {item.walcano_name}
-                        </div>
-                      </div>
-
-                      {/* Surfaces Product */}
-                      <div
-                        style={{
-                          padding: '10px 14px',
-                          background: '#FEFDF8',
-                          borderRadius: '8px',
-                          border: '1px solid #FDE68A',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span className="pill pill-surfaces" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                            SURFACES MATCH
-                          </span>
-                          <span style={{ fontSize: '10px', fontWeight: 800, background: '#FEF3C7', color: '#B45309', padding: '2px 6px', borderRadius: '10px' }}>
-                            {Math.round(item.confidence * 100)}% Match
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F' }}>
-                          {item.suggested_surfaces_name}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div style={{ minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'center' }}>
-                      {isAccepted ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16A34A', fontWeight: 700, fontSize: '12px' }}>
-                          <Check size={16} />
-                          <span>Mapping Saved</span>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleAcceptSuggestion(item)}
-                            disabled={isProcessing || batchProcessing}
-                            className="btn btn-ai"
-                            style={{ padding: '7px 12px', fontSize: '12px', width: '100%' }}
-                          >
-                            {isProcessing ? (
-                              <RefreshCw size={13} className="animate-spin" />
-                            ) : (
-                              <Check size={13} />
-                            )}
-                            <span>Accept Match</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectAndAutoMap({ name: item.walcano_name })}
-                            className="btn btn-secondary"
-                            style={{
-                              padding: '5px 10px',
-                              fontSize: '11px',
-                              color: '#7C3AED',
-                              borderColor: '#DDD6FE',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                            }}
-                            title="Select as the single source of truth for Auto Mapping"
-                          >
-                            <Sparkles size={11} />
-                            <span>Select for Auto Mapping</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '10px', fontSize: '11px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={12} color="#7C3AED" style={{ flexShrink: 0 }} />
-                    <span>{item.reasoning}</span>
-                  </div>
-                </div>
-              );
-            })
+          {/* ─── 3. OTHER UNMAPPED INVENTORY ITEMS QUICK-SWITCH ─── */}
+          {otherUnmappedProducts.length > 0 && (
+            <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
+                Other Unmapped Items in Your Inventory ({otherUnmappedProducts.length})
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {otherUnmappedProducts.map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSelectedWalcanoName(item.name);
+                      setSelectedMappingResult(null);
+                      setErrorMessage(null);
+                      runAutoMap(item.name, item.sku, item.category);
+                    }}
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '11px',
+                      color: '#475569',
+                      background: '#FFFFFF',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title={`Switch to ${item.name} and Auto-Map`}
+                  >
+                    <Package size={11} color="#94A3B8" />
+                    <span>{item.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
@@ -737,15 +565,15 @@ export default function AiAutoMapModal({
         <div className="ai-modal-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748B' }}>
             <HelpCircle size={13} />
-            <span>The selected Walcano product is the single source of truth for the generated Surfaces Tiles product name.</span>
+            <span>Strict 1:1 mapping: only the selected Walcano product is used to generate the Surfaces product name.</span>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="btn btn-secondary"
-            style={{ padding: '7px 16px' }}
+            style={{ padding: '7px 18px', fontWeight: 600 }}
           >
-            Close
+            Done
           </button>
         </div>
       </div>
