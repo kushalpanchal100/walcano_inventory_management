@@ -9,6 +9,7 @@ import {
   getQuickBooksStatus,
   getQuickBooksAuthUrl,
   disconnectQuickBooks,
+  autoMapSingleProduct,
   QuickBooksInventoryItem,
   QuickBooksStatus,
 } from '@/lib/api';
@@ -59,6 +60,69 @@ export default function QuickBooksInventoryPage() {
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
+  const [mappingItemId, setMappingItemId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{
+    text: string;
+    type: 'success' | 'info' | 'error';
+    surfacesName?: string;
+  } | null>(null);
+
+  const handleRowAutoMapping = async (item: QuickBooksInventoryItem) => {
+    const walcanoName = item.walcano_name || item.name;
+    const itemKey = item.id || item.sku || item.name;
+    setMappingItemId(itemKey);
+    setToastMessage({
+      text: `Gemini AI is analyzing specs and generating unique Surfaces name for "${walcanoName}"...`,
+      type: 'info',
+    });
+
+    try {
+      const res = await autoMapSingleProduct({
+        walcano_name: walcanoName,
+        surfaces_name: item.surfaces_name || undefined,
+        sku: item.sku,
+        category: item.category,
+        auto_save: true,
+      });
+
+      if (res.success && res.surfaces_name) {
+        setItems((prevItems) =>
+          prevItems.map((it) => {
+            const currentKey = it.id || it.sku || it.name;
+            if (currentKey === itemKey) {
+              return {
+                ...it,
+                surfaces_name: res.surfaces_name,
+                is_mapped: true,
+                mapping_note: res.reasoning,
+              };
+            }
+            return it;
+          })
+        );
+        setToastMessage({
+          text: `Successfully mapped! Unique Surfaces product name: "${res.surfaces_name}"`,
+          type: 'success',
+          surfacesName: res.surfaces_name,
+        });
+      } else {
+        setToastMessage({
+          text: res.message || 'Auto-mapping failed',
+          type: 'error',
+        });
+      }
+    } catch (err: any) {
+      setToastMessage({
+        text: `Error during Auto Mapping: ${err.message || err}`,
+        type: 'error',
+      });
+    } finally {
+      setMappingItemId(null);
+      setTimeout(() => {
+        setToastMessage((cur) => (cur?.type === 'success' ? null : cur));
+      }, 7000);
+    }
+  };
 
   const unmappedCount = useMemo(() => {
     return items.filter((i) => !i.is_mapped).length;
@@ -534,6 +598,96 @@ export default function QuickBooksInventoryPage() {
         </div>
       </div>
 
+      {/* ─── AI ACTION TOAST / BANNER ───────────────────────────────── */}
+      {toastMessage && (
+        <div
+          style={{
+            marginBottom: '16px',
+            padding: '12px 18px',
+            borderRadius: '10px',
+            background:
+              toastMessage.type === 'success'
+                ? '#F0FDF4'
+                : toastMessage.type === 'error'
+                ? '#FEF2F2'
+                : '#F5F3FF',
+            border:
+              toastMessage.type === 'success'
+                ? '1px solid #86EFAC'
+                : toastMessage.type === 'error'
+                ? '1px solid #FECACA'
+                : '1px solid #DDD6FE',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Sparkles
+              size={18}
+              color={
+                toastMessage.type === 'success'
+                  ? '#16A34A'
+                  : toastMessage.type === 'error'
+                  ? '#DC2626'
+                  : '#7C3AED'
+              }
+            />
+            <div>
+              <span
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color:
+                    toastMessage.type === 'success'
+                      ? '#166534'
+                      : toastMessage.type === 'error'
+                      ? '#991B1B'
+                      : '#5B21B6',
+                }}
+              >
+                {toastMessage.type === 'success'
+                  ? '✨ Gemini AI Auto-Mapping Confirmed'
+                  : toastMessage.type === 'error'
+                  ? 'Auto-Mapping Error'
+                  : '✨ Gemini AI Generating Unique Name...'}
+              </span>
+              <p
+                style={{
+                  fontSize: '12px',
+                  color:
+                    toastMessage.type === 'success'
+                      ? '#15803D'
+                      : toastMessage.type === 'error'
+                      ? '#B91C1C'
+                      : '#6D28D9',
+                  margin: '2px 0 0 0',
+                }}
+              >
+                {toastMessage.text}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94A3B8',
+              cursor: 'pointer',
+              fontSize: '16px',
+              padding: '4px',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ─── DEMO MODE BANNER ────────────────────────────────────────── */}
       {isDemoMode && (
         <div
@@ -971,41 +1125,90 @@ export default function QuickBooksInventoryPage() {
                       {/* Column 2: Surfaces Tiles Product Name */}
                       <td>
                         {isMapped && item.surfaces_name ? (
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                              <span className="pill pill-surfaces" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                                MAPPED
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F', lineHeight: '1.3' }}>
-                              {item.surfaces_name}
-                            </div>
-                            {item.surfaces_variants && item.surfaces_variants.length > 1 && (
-                              <div style={{ fontSize: '11px', color: '#B45309', marginTop: '2px' }}>
-                                {item.surfaces_variants.length} catalog variations
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                                <span className="pill pill-surfaces" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                                  MAPPED
+                                </span>
+                                {item.mapping_note && item.mapping_note.toLowerCase().includes('gemini') && (
+                                  <span className="pill pill-ai" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                                    ✨ Gemini AI
+                                  </span>
+                                )}
                               </div>
-                            )}
+                              <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F', lineHeight: '1.3' }}>
+                                {item.surfaces_name}
+                              </div>
+                              {item.surfaces_variants && item.surfaces_variants.length > 1 && (
+                                <div style={{ fontSize: '11px', color: '#B45309', marginTop: '2px' }}>
+                                  {item.surfaces_variants.length} catalog variations
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRowAutoMapping(item)}
+                              disabled={mappingItemId === (item.id || item.sku || item.name)}
+                              className="btn btn-secondary"
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#7C3AED',
+                                borderColor: '#DDD6FE',
+                                background: '#F5F3FF',
+                                borderRadius: '5px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                flexShrink: 0,
+                                cursor: 'pointer',
+                              }}
+                              title="Re-run Auto Mapping: generate a fresh unique Surfaces name with Gemini AI"
+                            >
+                              {mappingItemId === (item.id || item.sku || item.name) ? (
+                                <RefreshCw size={10} className="animate-spin" />
+                              ) : (
+                                <Sparkles size={10} />
+                              )}
+                              <span>Auto Mapping</span>
+                            </button>
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span className="pill pill-neutral" style={{ fontSize: '10px' }}>
                               <Unlink size={10} color="#94A3B8" />
                               Unmapped
                             </span>
                             <button
                               type="button"
-                              onClick={() => setIsAutoMapOpen(true)}
+                              onClick={() => handleRowAutoMapping(item)}
+                              disabled={mappingItemId === (item.id || item.sku || item.name)}
+                              className="btn btn-ai"
                               style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--surfaces-gold)',
+                                padding: '4px 10px',
                                 fontSize: '11px',
-                                fontWeight: 600,
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                borderRadius: '6px',
                                 cursor: 'pointer',
-                                textDecoration: 'underline',
                               }}
+                              title="Auto-map to Walcano product and generate a unique Surfaces Tiles product name using Gemini AI"
                             >
-                              Auto-Match
+                              {mappingItemId === (item.id || item.sku || item.name) ? (
+                                <>
+                                  <RefreshCw size={11} className="animate-spin" />
+                                  <span>Generating...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles size={11} />
+                                  <span>Auto Mapping</span>
+                                </>
+                              )}
                             </button>
                           </div>
                         )}

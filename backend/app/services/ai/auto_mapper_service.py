@@ -1,160 +1,433 @@
 """Product Auto-Mapper AI Service.
 
-Specialized in matching unmapped QuickBooks / Walcano inventory items against
-the authoritative Surfaces Tiles catalog based on size, finish, and attributes.
+Specialized in automatically mapping Walcano Tiles and Surfaces Tiles products,
+and generating unique, relevant, and consistent Surfaces Tiles product names
+using Google Gemini AI based on mapped Walcano product attributes.
 """
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+import random
+import re
+from typing import Any, Dict, List, Optional, Set
 
 from app.integrations.quickbooks.product_mapping import (
     PARSED_ENTRIES,
     PDF_MAPPING_ROWS,
     extract_finish,
+    load_custom_mappings,
     normalize_size,
     normalize_words,
+    save_custom_mapping,
 )
 from app.services.ai.gemini_provider import gemini_provider
 
 logger = logging.getLogger(__name__)
 
+# Curated luxury collection prefixes for brand-consistent naming and fallback
+LUXURY_COLLECTIONS = [
+    "Aura", "Bellagio", "Lumina", "Celestia", "Novara", "Vento", "Petra",
+    "Statuario Supremo", "Opulenza", "Elysium", "Verona", "Milano", "Carrara Grand",
+    "Sabbia", "Mercure Marble", "Nexo", "Enduro", "Mandala", "Luxe", "Rosetta",
+    "Zenith", "Gemstone", "Cotto Sealine", "Titan", "Volcanic", "Cloudy", "Lava"
+]
+
+
+def get_all_existing_surfaces_names() -> Set[str]:
+    """Collect all known Surfaces product names to prevent duplicates."""
+    names: Set[str] = set()
+
+    # 1. Authoritative PDF mappings
+    for _, s_name in PDF_MAPPING_ROWS:
+        if s_name and s_name.strip():
+            names.add(s_name.strip())
+
+    # 2. Saved custom mappings
+    try:
+        custom_mappings = load_custom_mappings()
+        for entry in custom_mappings.values():
+            sn = entry.get("surfaces_name")
+            if sn and sn.strip():
+                names.add(sn.strip())
+    except Exception as e:
+        logger.warning(f"Error loading custom mappings for uniqueness check: {e}")
+
+    return names
+
 
 class ProductAutoMapperService:
-    """Matches catalog items using Gemini structured outputs with heuristic fallback."""
+    """Auto-maps products and generates unique Surfaces product names with Gemini AI."""
 
     def __init__(self, provider=gemini_provider):
         self.provider = provider
+
+    def _extract_product_specs(self, walcano_name: str, sku: str = "", category: str = "") -> Dict[str, Any]:
+        """Parse structured physical attributes from Walcano product information."""
+        combined = f"{walcano_name} {sku} {category}".strip()
+        size_tuple = normalize_size(combined)
+        finishes = extract_finish(combined)
+        tokens = normalize_words(walcano_name)
+
+        # Standardize size string
+        dim_str = "60x120 cm"
+        is_outdoor = "outdoor" in finishes or "paver" in combined.lower() or "2cm" in combined.lower()
+        if size_tuple:
+            w, h = size_tuple
+            if is_outdoor and (w, h) in [(60, 90), (90, 60)]:
+                dim_str = "60x90cm (2cm)"
+            else:
+                dim_str = f"{w}x{h} cm"
+
+        # Standardize finish string
+        finish_str = "Polished Porcelain"
+        if "carving" in finishes:
+            finish_str = "Carving Matt Porcelain"
+        elif "glass" in finishes:
+            finish_str = "Glass Tiles"
+        elif "outdoor" in finishes or is_outdoor:
+            finish_str = "Outdoor Porcelain Floor"
+        elif "matt" in finishes:
+            finish_str = "Matt Porcelain"
+        elif "gloss" in finishes:
+            finish_str = "High Gloss Porcelain"
+        elif "satin" in finishes:
+            finish_str = "Satin Porcelain"
+        elif "polished" in finishes:
+            finish_str = "Polished Porcelain"
+
+        # Determine tile type
+        tile_type = "Tiles"
+        c_lower = category.lower()
+        if "wall" in c_lower or "feature" in combined.lower():
+            tile_type = "Feature Wall Tiles"
+        elif "slab" in c_lower or (size_tuple and max(size_tuple) >= 160):
+            tile_type = "Porcelain Slabs"
+        elif "outdoor" in c_lower or is_outdoor:
+            tile_type = "Tiles"
+        elif "glass" in c_lower:
+            tile_type = "Tiles"
+        else:
+            tile_type = "Floor & Wall Tiles"
+
+        return {
+            "walcano_name": walcano_name,
+            "sku": sku,
+            "category": category or "Porcelain Tiles",
+            "size_tuple": size_tuple,
+            "dimensions": dim_str,
+            "finishes": finishes,
+            "finish_str": finish_str,
+            "tile_type": tile_type,
+            "tokens": tokens,
+            "is_outdoor": is_outdoor,
+        }
+
+    async def generate_unique_surfaces_name(
+        self,
+        walcano_details: Dict[str, Any],
+        existing_names: Optional[Set[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Generate a unique, relevant, and consistent Surfaces Tiles product name using Gemini AI.
+        
+        Guarantees that the generated name does not conflict with:
+        - PDF catalog reference mappings
+        - .custom_mappings.json entries
+        - Active live inventory items
+        """
+        if existing_names is None:
+            existing_names = get_all_existing_surfaces_names()
+
+        existing_names_lower = {n.lower().strip() for n in existing_names}
+
+        walcano_name = walcano_details.get("walcano_name") or walcano_details.get("name", "")
+        sku = walcano_details.get("sku", "")
+        category = walcano_details.get("category", "")
+
+        specs = self._extract_product_specs(walcano_name, sku, category)
+
+        # 1. Attempt generation with Gemini AI if configured
+        if self.provider.is_configured:
+            try:
+                gemini_result = await self._generate_name_with_gemini(
+                    specs=specs,
+                    existing_names=existing_names,
+                    existing_names_lower=existing_names_lower,
+                )
+                if gemini_result and gemini_result.get("surfaces_name"):
+                    gen_name = gemini_result["surfaces_name"].strip()
+                    if gen_name.lower() not in existing_names_lower:
+                        return {
+                            "surfaces_name": gen_name,
+                            "confidence": round(float(gemini_result.get("confidence", 0.96)), 2),
+                            "reasoning": gemini_result.get("reasoning", "Generated by Gemini AI matching Walcano specifications"),
+                            "is_unique": True,
+                            "provider": "gemini",
+                            "attributes": {
+                                "dimensions": specs["dimensions"],
+                                "finish": specs["finish_str"],
+                                "tile_type": specs["tile_type"],
+                                "collection": gemini_result.get("collection", "Surfaces Signature"),
+                            },
+                        }
+                    else:
+                        logger.warning(f"Gemini name '{gen_name}' already exists, generating distinct variant.")
+            except Exception as e:
+                logger.error(f"Gemini unique name generation error: {e}", exc_info=True)
+
+        # 2. Heuristic fallback generation with uniqueness verification
+        return self._heuristic_unique_name(specs, existing_names_lower)
+
+    async def _generate_name_with_gemini(
+        self,
+        specs: Dict[str, Any],
+        existing_names: Set[str],
+        existing_names_lower: Set[str],
+        forbidden_candidates: Optional[List[str]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Call Gemini to synthesize a brand-compliant unique Surfaces product name."""
+        forbidden_list = list(existing_names)[:60]
+        if forbidden_candidates:
+            forbidden_list.extend(forbidden_candidates)
+
+        system_instruction = (
+            "You are an elite tile catalog architect and brand naming specialist for Surfaces Tiles "
+            "(a luxury architectural B2C tile brand) and Walcano Tiles (its manufacturing counterpart).\n"
+            "Your task is to generate a UNIQUE, RELEVANT, and BRAND-CONSISTENT luxury product name for "
+            "Surfaces Tiles based strictly on the provided Walcano product's specifications.\n\n"
+            "Surfaces Tiles Brand Naming Syntax:\n"
+            "[Luxury Collection Name] [Color / Motif Descriptor] [Dimensions cm] [Surface Finish] [Tile Type]\n\n"
+            "Catalog Reference Examples from Authoritative Surfaces Catalog:\n"
+            "- 'Mercure Marble White 60x120 cm Polished Porcelain Tile'\n"
+            "- 'Mandala Dark Grey 30x60 cm Feature Wall Tiles'\n"
+            "- 'Luxe Gold 60x120 cm Matt Porcelain Tiles'\n"
+            "- 'Enduro Walnut 60x90cm (2cm) Outdoor Porcelain Tiles'\n"
+            "- 'Rosetta Pink 60x120 CM Matt Porcelain Tiles'\n"
+            "- 'Classico Grande Endless 80x120 cm Matt Porcelain Tiles'\n"
+            "- 'Mystic Turquoise 80x120 cm High Gloss Porcelain Tiles'\n"
+            "- 'Volcanic Charcoal 60x120 CM Glass Tiles Glossy Grey Wall Tiles for Modern Interiors'\n"
+            "- 'Cotto Sealine Cement 80x120 cm Ghr Matt Porcelain Tile'\n\n"
+            "Naming Rules:\n"
+            "1. RELEVANCE: Accurately reflect the product's actual physical dimensions (e.g. 60x120 cm, 60x60 cm, 80x120 cm, 60x90cm (2cm)), "
+            "surface finish (Polished, Matt, Carving Matt, High Gloss, Satin, Glass, Outdoor Paver), and tile type.\n"
+            "2. CONSISTENCY: Use evocative luxury collection names (e.g., Mercure, Aura, Bellagio, Lumina, Celestia, Novara, Enduro, "
+            "Sabbia, Rosetta, Mystic, Zenith, Pune, Nexo, Volcanic, etc.) paired with clear color/motif descriptors.\n"
+            "3. STRICT UNIQUENESS: The generated name MUST BE 100% UNIQUE. It MUST NOT match any existing catalog product name.\n"
+            "4. FORBIDDEN NAMES (Do NOT use any of these or near-duplicates):\n"
+            f"{json.dumps(forbidden_list[:40], indent=1)}\n\n"
+            "Output MUST be valid JSON with keys:\n"
+            "{\n"
+            "  \"surfaces_name\": \"[Collection] [Color/Motif] [Dimensions] [Finish] [Tile Type]\",\n"
+            "  \"collection\": \"Name of the luxury collection\",\n"
+            "  \"color_descriptor\": \"Color or veining tone\",\n"
+            "  \"dimensions\": \"Dimensions in cm\",\n"
+            "  \"finish\": \"Finish specification\",\n"
+            "  \"tile_type\": \"Tile category specification\",\n"
+            "  \"confidence\": 0.95,\n"
+            "  \"reasoning\": \"1 sentence explaining how the name reflects Walcano dimensions, finish, and series\"\n"
+            "}"
+        )
+
+        prompt = (
+            f"Walcano Product to Map & Name:\n"
+            f"- Walcano Name: {specs['walcano_name']}\n"
+            f"- SKU: {specs['sku']}\n"
+            f"- Category: {specs['category']}\n"
+            f"- Extracted Dimensions: {specs['dimensions']}\n"
+            f"- Extracted Finish: {specs['finish_str']}\n"
+            f"- Extracted Tile Type: {specs['tile_type']}\n\n"
+            "Generate the unique Surfaces Tiles product name in JSON format."
+        )
+
+        result = await self.provider.generate_structured_json(
+            prompt=prompt,
+            system_instruction=system_instruction,
+            temperature=0.2,
+        )
+
+        if isinstance(result, dict) and result.get("surfaces_name"):
+            return result
+        return None
+
+    def _heuristic_unique_name(
+        self,
+        specs: Dict[str, Any],
+        existing_names_lower: Set[str],
+    ) -> Dict[str, Any]:
+        """Deterministic, brand-consistent fallback generator ensuring zero collision."""
+        w_name = specs["walcano_name"]
+        dim = specs["dimensions"]
+        finish = specs["finish_str"]
+        tile_type = specs["tile_type"]
+
+        # Extract primary color or tone keyword
+        color_kw = "Marble White"
+        tokens = [t.capitalize() for t in specs["tokens"] if t.lower() not in {"tiles", "tile", "porcelain", "wall", "floor"}]
+        if tokens:
+            color_kw = " ".join(tokens[:2])
+
+        # Find an unused luxury collection prefix
+        chosen_name = None
+        for col in LUXURY_COLLECTIONS:
+            cand = f"{col} {color_kw} {dim} {finish} {tile_type}".strip()
+            if cand.lower() not in existing_names_lower:
+                chosen_name = cand
+                break
+
+        if not chosen_name:
+            # Add unique variant suffix
+            suffix_num = 1
+            while True:
+                cand = f"Aura {color_kw} Grande {suffix_num} {dim} {finish} {tile_type}"
+                if cand.lower() not in existing_names_lower:
+                    chosen_name = cand
+                    break
+                suffix_num += 1
+
+        return {
+            "surfaces_name": chosen_name,
+            "confidence": 0.90,
+            "reasoning": f"Generated based on {dim} dimension, {finish} finish, and {color_kw} color tone",
+            "is_unique": True,
+            "provider": "heuristic",
+            "attributes": {
+                "dimensions": dim,
+                "finish": finish,
+                "tile_type": tile_type,
+                "collection": chosen_name.split()[0],
+            },
+        }
+
+    async def auto_map_single_product(
+        self,
+        walcano_name: Optional[str] = None,
+        surfaces_name: Optional[str] = None,
+        sku: Optional[str] = None,
+        category: Optional[str] = None,
+        auto_save: bool = True,
+        existing_inventory_names: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Execute Auto Mapping for a specific product.
+        
+        If starting from a Surfaces Tiles product or Walcano product, automatically:
+        1. Maps it to the corresponding Walcano product.
+        2. Generates a unique Surfaces Tiles product name using Gemini AI based on the mapped Walcano details.
+        3. Optionally persists the custom mapping so it applies across inventory & CSV exports.
+        """
+        existing_names = get_all_existing_surfaces_names()
+        if existing_inventory_names:
+            for n in existing_inventory_names:
+                if n and n.strip():
+                    existing_names.add(n.strip())
+
+        # Determine effective Walcano item
+        target_walcano = (walcano_name or "").strip()
+
+        # If only surfaces_name was provided, find corresponding Walcano product
+        if not target_walcano and surfaces_name:
+            s_query = surfaces_name.strip()
+            # 1. Search PDF mapping rows
+            for w, s in PDF_MAPPING_ROWS:
+                if s.lower() == s_query.lower():
+                    target_walcano = w
+                    break
+
+            # 2. Search parsed entries by token similarity
+            if not target_walcano:
+                s_tokens = set(normalize_words(s_query))
+                best_w = None
+                best_score = 0
+                for entry in PARSED_ENTRIES:
+                    common = s_tokens.intersection(set(entry.surfaces_tokens + entry.walcano_tokens))
+                    if len(common) > best_score:
+                        best_score = len(common)
+                        best_w = entry.walcano_name
+                target_walcano = best_w or surfaces_name
+
+        if not target_walcano:
+            target_walcano = "Unspecified Tile Product"
+
+        # Generate unique Surfaces Tiles product name based on mapped Walcano details
+        walcano_details = {
+            "walcano_name": target_walcano,
+            "sku": sku or "",
+            "category": category or "Porcelain Tiles",
+        }
+
+        unique_gen = await self.generate_unique_surfaces_name(
+            walcano_details=walcano_details,
+            existing_names=existing_names,
+        )
+
+        gen_surfaces_name = unique_gen["surfaces_name"]
+        confidence = unique_gen["confidence"]
+        reasoning = unique_gen["reasoning"]
+
+        saved = False
+        if auto_save and target_walcano and gen_surfaces_name:
+            try:
+                save_custom_mapping(
+                    walcano_name=target_walcano,
+                    surfaces_name=gen_surfaces_name,
+                    confidence=confidence,
+                    note=reasoning,
+                )
+                saved = True
+            except Exception as e:
+                logger.error(f"Failed to auto-save custom mapping: {e}")
+
+        return {
+            "success": True,
+            "walcano_name": target_walcano,
+            "surfaces_name": gen_surfaces_name,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "is_unique": unique_gen.get("is_unique", True),
+            "provider": unique_gen.get("provider", "gemini"),
+            "attributes": unique_gen.get("attributes", {}),
+            "saved": saved,
+        }
 
     async def auto_map(
         self,
         unmapped_items: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        """Generate AI mapping suggestions for unmapped inventory items."""
+        """Generate AI mapping suggestions for unmapped inventory items using Gemini AI."""
         if not unmapped_items:
             return []
 
-        if self.provider.is_configured:
-            try:
-                gemini_suggestions = await self._auto_map_with_gemini(unmapped_items)
-                if gemini_suggestions:
-                    return gemini_suggestions
-            except Exception as e:
-                logger.warning(f"Gemini auto-mapping failed, using heuristic matcher: {e}")
-
-        return self._heuristic_auto_map(unmapped_items)
-
-    async def _auto_map_with_gemini(
-        self,
-        unmapped_items: List[Dict[str, Any]],
-    ) -> Optional[List[Dict[str, Any]]]:
-        """Call Gemini with JSON structured response schema."""
-        surfaces_catalog = list(dict.fromkeys(s for _, s in PDF_MAPPING_ROWS))
-
-        sample_unmapped = []
-        for it in unmapped_items[:25]:
-            sample_unmapped.append({
-                "walcano_name": it.get("walcano_name") or it.get("name", ""),
-                "sku": it.get("sku", ""),
-                "category": it.get("category", "General"),
-            })
-
-        system_instruction = (
-            "You are a ceramic and porcelain tile catalog specialist for Walcano Tiles and Surfaces Tiles.\n"
-            "Your task is to match unmapped Walcano inventory products to their corresponding authoritative Surfaces product.\n\n"
-            "Rules for matching:\n"
-            "1. Match on dimensions: 30x60, 60x60, 60x90 (2cm outdoor), 60x120, 80x120, 100x100.\n"
-            "2. Match on finish: Matt, Polished, Carving, High Gloss, Glass, Outdoor Paver.\n"
-            "3. Match on series name and color tone (e.g., Satuario -> Mercure Marble White, Endless -> Classico Grande Endless).\n"
-            "4. Provide a confidence between 0.50 and 0.99, and a brief 1-sentence explanation.\n\n"
-            "Authoritative Surfaces Catalog options:\n"
-            f"{json.dumps(surfaces_catalog, indent=1)}\n\n"
-            "Output MUST be a valid JSON array of objects with keys: "
-            "'walcano_name', 'suggested_surfaces_name', 'confidence', 'reasoning'."
-        )
-
-        prompt = f"Match these unmapped Walcano items:\n{json.dumps(sample_unmapped, indent=1)}"
-
-        results = await self.provider.generate_structured_json(
-            prompt=prompt,
-            system_instruction=system_instruction,
-            temperature=0.1,
-        )
-
-        if not results or not isinstance(results, list):
-            return None
-
-        return [
-            {
-                "walcano_name": r.get("walcano_name"),
-                "suggested_surfaces_name": r.get("suggested_surfaces_name"),
-                "confidence": round(float(r.get("confidence", 0.8)), 2),
-                "reasoning": r.get("reasoning", "Matched via Gemini tile attribute analysis"),
-                "provider": "gemini",
-            }
-            for r in results
-            if r.get("suggested_surfaces_name")
-        ]
-
-    def _heuristic_auto_map(
-        self,
-        unmapped_items: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """Smart local fallback matcher comparing dimensions, finishes, and word tokens."""
-        suggestions = []
-
+        existing_names = get_all_existing_surfaces_names()
+        # Add existing mapped names from items
         for it in unmapped_items:
-            name = it.get("walcano_name") or it.get("name", "")
+            sn = it.get("surfaces_name")
+            if sn and sn.strip():
+                existing_names.add(sn.strip())
+
+        suggestions = []
+        for it in unmapped_items:
+            w_name = it.get("walcano_name") or it.get("name", "")
             sku = it.get("sku", "")
-            query = f"{name} {sku}".strip()
+            cat = it.get("category", "General")
 
-            item_size = normalize_size(query)
-            item_finishes = set(extract_finish(query))
-            item_tokens = set(normalize_words(name))
+            gen_result = await self.generate_unique_surfaces_name(
+                walcano_details={"walcano_name": w_name, "sku": sku, "category": cat},
+                existing_names=existing_names,
+            )
 
-            best_entry = None
-            best_score = 0.0
-            reasons = []
+            # Record newly generated name so subsequent items in the batch also don't collide
+            new_name = gen_result["surfaces_name"]
+            existing_names.add(new_name)
 
-            for entry in PARSED_ENTRIES:
-                score = 0.0
-                match_reasons = []
-
-                # Size match
-                if item_size and entry.effective_size:
-                    if item_size == entry.effective_size:
-                        score += 0.40
-                        match_reasons.append(f"{item_size[0]}x{item_size[1]}cm dimension")
-
-                # Finish match
-                cand_finishes = set(entry.surfaces_finish + entry.walcano_finish)
-                common_finishes = item_finishes.intersection(cand_finishes)
-                if common_finishes:
-                    score += 0.30
-                    match_reasons.append(f"{'/'.join(common_finishes).capitalize()} finish")
-
-                # Token match
-                cand_tokens = set(entry.walcano_tokens + entry.surfaces_tokens)
-                common_tokens = item_tokens.intersection(cand_tokens)
-                if common_tokens:
-                    score += 0.25 * (len(common_tokens) / max(1, len(item_tokens)))
-                    match_reasons.append(f"color/series keyword match ({', '.join(common_tokens)})")
-
-                if score > best_score and score >= 0.40:
-                    best_score = score
-                    best_entry = entry
-                    reasons = match_reasons
-
-            if best_entry and best_score >= 0.40:
-                confidence = min(0.95, round(best_score, 2))
-                reasoning = "Matched based on " + ", ".join(reasons) if reasons else "Partial catalog similarity"
-                suggestions.append({
-                    "walcano_name": name,
-                    "suggested_surfaces_name": best_entry.surfaces_name,
-                    "confidence": confidence,
-                    "reasoning": reasoning,
-                    "provider": "heuristic",
-                })
+            suggestions.append({
+                "walcano_name": w_name,
+                "suggested_surfaces_name": new_name,
+                "confidence": gen_result["confidence"],
+                "reasoning": gen_result["reasoning"],
+                "is_unique": gen_result.get("is_unique", True),
+                "provider": gen_result.get("provider", "gemini"),
+                "attributes": gen_result.get("attributes", {}),
+            })
 
         return suggestions
 

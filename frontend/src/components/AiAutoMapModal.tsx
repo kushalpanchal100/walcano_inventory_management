@@ -12,10 +12,12 @@ import {
   Info,
   HelpCircle,
   Link2,
+  Search,
 } from 'lucide-react';
 import {
   getAiAutoMappings,
   acceptAiMapping,
+  autoMapSingleProduct,
   AiMappingSuggestion,
   AiAutoMapResponse,
 } from '@/lib/api';
@@ -37,7 +39,13 @@ export default function AiAutoMapModal({
   const [data, setData] = useState<AiAutoMapResponse | null>(null);
   const [acceptedSet, setAcceptedSet] = useState<Set<string>>(new Set());
   const [processingItem, setProcessingItem] = useState<string | null>(null);
+  const [regeneratingItem, setRegeneratingItem] = useState<string | null>(null);
   const [batchProcessing, setBatchProcessing] = useState<boolean>(false);
+
+  // Quick Auto-Map custom input state
+  const [customInput, setCustomInput] = useState<string>('');
+  const [isCustomMapping, setIsCustomMapping] = useState<boolean>(false);
+  const [customFeedback, setCustomFeedback] = useState<string | null>(null);
 
   const fetchSuggestions = async () => {
     setLoading(true);
@@ -55,6 +63,7 @@ export default function AiAutoMapModal({
   useEffect(() => {
     if (isOpen) {
       fetchSuggestions();
+      setCustomFeedback(null);
     }
   }, [isOpen, isDemoMode]);
 
@@ -77,6 +86,92 @@ export default function AiAutoMapModal({
       alert(`Error saving mapping: ${err.message || err}`);
     } finally {
       setProcessingItem(null);
+    }
+  };
+
+  const handleRegenerateSingle = async (item: AiMappingSuggestion) => {
+    setRegeneratingItem(item.walcano_name);
+    try {
+      const res = await autoMapSingleProduct({
+        walcano_name: item.walcano_name,
+        sku: item.walcano_name,
+        auto_save: false,
+      });
+
+      if (res.success && res.surfaces_name) {
+        setData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            suggestions: prev.suggestions.map((s) =>
+              s.walcano_name === item.walcano_name
+                ? {
+                    ...s,
+                    suggested_surfaces_name: res.surfaces_name,
+                    confidence: res.confidence,
+                    reasoning: res.reasoning,
+                    is_unique: res.is_unique,
+                    attributes: res.attributes,
+                    provider: res.provider,
+                  }
+                : s
+            ),
+          };
+        });
+      }
+    } catch (err: any) {
+      console.error('Error regenerating unique name:', err);
+    } finally {
+      setRegeneratingItem(null);
+    }
+  };
+
+  const handleCustomAutoMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customInput.trim()) return;
+
+    setIsCustomMapping(true);
+    setCustomFeedback(null);
+
+    try {
+      const res = await autoMapSingleProduct({
+        walcano_name: customInput.trim(),
+        surfaces_name: customInput.trim(),
+        auto_save: true,
+      });
+
+      if (res.success && res.surfaces_name) {
+        setCustomFeedback(
+          `Mapped "${res.walcano_name}" -> Unique Surfaces Name: "${res.surfaces_name}"`
+        );
+        // Prepend to suggestions list
+        setData((prev) => ({
+          unmapped_total: prev ? prev.unmapped_total : 1,
+          suggestions_count: (prev ? prev.suggestions_count : 0) + 1,
+          provider: res.provider,
+          suggestions: [
+            {
+              walcano_name: res.walcano_name,
+              suggested_surfaces_name: res.surfaces_name,
+              confidence: res.confidence,
+              reasoning: res.reasoning,
+              is_unique: res.is_unique,
+              attributes: res.attributes,
+              provider: res.provider,
+            },
+            ...(prev ? prev.suggestions.filter((s) => s.walcano_name !== res.walcano_name) : []),
+          ],
+        }));
+        setAcceptedSet((prev) => new Set(prev).add(res.walcano_name));
+        onMappingApplied();
+        setCustomInput('');
+      } else {
+        setCustomFeedback(`Failed: ${res.message || 'Could not map product'}`);
+      }
+    } catch (err: any) {
+      setCustomFeedback(`Error: ${err.message || err}`);
+    } finally {
+      setIsCustomMapping(false);
     }
   };
 
@@ -137,14 +232,14 @@ export default function AiAutoMapModal({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                  AI Catalog Auto-Mapper
+                  AI Auto-Mapping & Unique Name Generator
                 </h3>
                 <span className="pill pill-ai">
-                  {data?.provider === 'gemini' ? 'Gemini 2.5 Live' : 'Heuristic Engine'}
+                  {data?.provider === 'gemini' ? 'Gemini AI Active' : 'Smart Catalog Engine'}
                 </span>
               </div>
               <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                Maps unmapped QuickBooks items to the Surfaces tile specification catalog by size, finish, and characteristics
+                Automatically maps Surfaces Tiles products to Walcano products and generates unique, consistent luxury product names using Gemini AI.
               </p>
             </div>
           </div>
@@ -171,11 +266,90 @@ export default function AiAutoMapModal({
           </div>
         </div>
 
-        {/* Sub-header Banner */}
+        {/* Quick Auto-Map Specific Product Input Form */}
         <div
           style={{
             padding: '12px 24px',
             background: '#F8FAFC',
+            borderBottom: '1px solid var(--border-subtle)',
+          }}
+        >
+          <form
+            onSubmit={handleCustomAutoMapping}
+            style={{
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+              <input
+                type="text"
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                placeholder="Auto-Map any Surfaces Tiles product or Walcano product (e.g. Carrara White 600x1200)..."
+                disabled={isCustomMapping}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '12px',
+                  outline: 'none',
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)',
+                }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isCustomMapping || !customInput.trim()}
+              className="btn btn-ai"
+              style={{
+                padding: '8px 16px',
+                fontSize: '12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {isCustomMapping ? (
+                <>
+                  <RefreshCw size={13} className="animate-spin" />
+                  <span>Generating Name...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} />
+                  <span>Auto Mapping</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {customFeedback && (
+            <div
+              style={{
+                marginTop: '8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: customFeedback.startsWith('Mapped') ? '#16A34A' : '#DC2626',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Check size={12} />
+              <span>{customFeedback}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Sub-header Banner */}
+        <div
+          style={{
+            padding: '10px 24px',
+            background: '#FFFFFF',
             borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
@@ -186,10 +360,10 @@ export default function AiAutoMapModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#475569' }}>
             <span style={{ fontWeight: 700, color: '#0F172A' }}>
-              {suggestions.length} candidate suggestions
+              {suggestions.length} candidate items
             </span>
             <span>·</span>
-            <span>{data?.unmapped_total || 0} unmapped items in QuickBooks</span>
+            <span>{data?.unmapped_total || 0} unmapped items in catalog</span>
             {acceptedSet.size > 0 && (
               <>
                 <span>·</span>
@@ -230,10 +404,10 @@ export default function AiAutoMapModal({
                 }}
               />
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
-                Analyzing tile catalog specifications...
+                Analyzing tile specifications with Gemini AI...
               </p>
               <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-                Cross-referencing Wallcano QuickBooks records with Surfaces master sheet
+                Generating brand-consistent, unique Surfaces Tiles product names based on Walcano attributes.
               </p>
             </div>
           ) : suggestions.length === 0 ? (
@@ -257,13 +431,14 @@ export default function AiAutoMapModal({
                 All Catalog Items Are Mapped!
               </h4>
               <p style={{ fontSize: '13px', color: '#64748B', maxWidth: '420px', margin: '0 auto' }}>
-                Every QuickBooks inventory product is currently linked to its corresponding Surfaces specification.
+                Every inventory product is currently linked to its corresponding Surfaces specification. Use the search bar above to map any custom product.
               </p>
             </div>
           ) : (
             suggestions.map((item, idx) => {
               const isAccepted = acceptedSet.has(item.walcano_name);
               const isProcessing = processingItem === item.walcano_name;
+              const isRegen = regeneratingItem === item.walcano_name;
               const confPercent = Math.round(item.confidence * 100);
 
               let confStyle = {
@@ -284,9 +459,9 @@ export default function AiAutoMapModal({
                   key={idx}
                   className={`map-card ${isAccepted ? 'accepted' : ''}`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                     {/* Dual Brand Comparison Columns */}
-                    <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                    <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
                       {/* Left: Wallcano Product */}
                       <div
                         style={{
@@ -298,7 +473,7 @@ export default function AiAutoMapModal({
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           <span className="pill pill-wallcano" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                            WALLCANO PRODUCT
+                            MAPPED WALCANO PRODUCT
                           </span>
                         </div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
@@ -315,10 +490,15 @@ export default function AiAutoMapModal({
                           border: '1px solid #FDE68A',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span className="pill pill-surfaces" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                            SURFACES MATCH
-                          </span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="pill pill-surfaces" style={{ fontSize: '9px', padding: '2px 6px' }}>
+                              SURFACES PRODUCT
+                            </span>
+                            <span className="pill pill-ai" style={{ fontSize: '9px', padding: '2px 6px' }}>
+                              ✨ Unique AI Name
+                            </span>
+                          </div>
                           <span
                             style={{
                               fontSize: '10px',
@@ -331,34 +511,81 @@ export default function AiAutoMapModal({
                             {confPercent}% Match
                           </span>
                         </div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F', lineHeight: '1.3' }}>
                           {item.suggested_surfaces_name}
                         </div>
+
+                        {item.attributes && (
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                            {item.attributes.dimensions && (
+                              <span style={{ fontSize: '10px', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px', color: '#475569' }}>
+                                📐 {item.attributes.dimensions}
+                              </span>
+                            )}
+                            {item.attributes.finish && (
+                              <span style={{ fontSize: '10px', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px', color: '#475569' }}>
+                                ✨ {item.attributes.finish}
+                              </span>
+                            )}
+                            {item.attributes.collection && (
+                              <span style={{ fontSize: '10px', background: '#FEF3C7', padding: '1px 5px', borderRadius: '4px', color: '#92400E', fontWeight: 600 }}>
+                                🏛️ {item.attributes.collection}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Action Button */}
-                    <div style={{ minWidth: '130px', display: 'flex', justifyContent: 'flex-end' }}>
+                    {/* Action Buttons */}
+                    <div style={{ minWidth: '150px', display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
                       {isAccepted ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16A34A', fontWeight: 700, fontSize: '13px' }}>
                           <Check size={16} />
-                          <span>Mapped</span>
+                          <span>Mapping Saved</span>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleAcceptSingle(item)}
-                          disabled={isProcessing || batchProcessing}
-                          className="btn btn-ai"
-                          style={{ padding: '8px 14px', width: '100%' }}
-                        >
-                          {isProcessing ? (
-                            <RefreshCw size={13} className="animate-spin" />
-                          ) : (
-                            <Check size={13} />
-                          )}
-                          <span>Accept Match</span>
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleAcceptSingle(item)}
+                            disabled={isProcessing || isRegen || batchProcessing}
+                            className="btn btn-ai"
+                            style={{ padding: '8px 12px', width: '100%', fontSize: '12px' }}
+                          >
+                            {isProcessing ? (
+                              <RefreshCw size={13} className="animate-spin" />
+                            ) : (
+                              <Check size={13} />
+                            )}
+                            <span>Accept Match</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRegenerateSingle(item)}
+                            disabled={isProcessing || isRegen || batchProcessing}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '5px 10px',
+                              width: '100%',
+                              fontSize: '11px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              color: '#7C3AED',
+                              borderColor: '#DDD6FE',
+                            }}
+                            title="Generate another unique Surfaces product name with Gemini AI"
+                          >
+                            {isRegen ? (
+                              <RefreshCw size={11} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={11} />
+                            )}
+                            <span>Auto Mapping</span>
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -387,7 +614,7 @@ export default function AiAutoMapModal({
         <div className="ai-modal-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748B' }}>
             <HelpCircle size={13} />
-            <span>Confirmed mappings persist permanently to the catalog and apply across CSV exports.</span>
+            <span>Confirmed mappings persist permanently to the catalog and apply across CSV exports and inventory syncs.</span>
           </div>
           <button
             type="button"

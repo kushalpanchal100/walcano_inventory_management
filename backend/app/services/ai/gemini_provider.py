@@ -44,31 +44,40 @@ class GeminiProvider:
                 return None
         return self._client
 
+    def _get_candidate_models(self) -> List[str]:
+        """Return candidate models with fallbacks in case of quota or availability issues."""
+        primary = self.model_name
+        fallbacks = [primary, "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash"]
+        # Deduplicate preserving order
+        return list(dict.fromkeys(fallbacks))
+
     async def generate_text(
         self,
         prompt: str,
         system_instruction: Optional[str] = None,
         temperature: float = 0.2,
     ) -> Optional[str]:
-        """Generate text using Gemini."""
+        """Generate text using Gemini with automatic model fallback."""
         client = self.get_client()
         if not client:
             return None
 
-        try:
-            config: Dict[str, Any] = {"temperature": temperature}
-            if system_instruction:
-                config["system_instruction"] = system_instruction
+        config: Dict[str, Any] = {"temperature": temperature}
+        if system_instruction:
+            config["system_instruction"] = system_instruction
 
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=[prompt],
-                config=config,
-            )
-            return response.text
-        except Exception as e:
-            logger.error(f"Gemini generate_text failed: {e}")
-            return None
+        for model_to_try in self._get_candidate_models():
+            try:
+                response = client.models.generate_content(
+                    model=model_to_try,
+                    contents=[prompt],
+                    config=config,
+                )
+                return response.text
+            except Exception as e:
+                logger.warning(f"Gemini generate_text with {model_to_try} failed: {e}. Trying fallback if available.")
+
+        return None
 
     async def generate_structured_json(
         self,
@@ -76,30 +85,32 @@ class GeminiProvider:
         system_instruction: Optional[str] = None,
         temperature: float = 0.1,
     ) -> Optional[Any]:
-        """Generate guaranteed JSON output using response_mime_type."""
+        """Generate guaranteed JSON output using response_mime_type with automatic model fallback."""
         client = self.get_client()
         if not client:
             return None
 
-        try:
-            config: Dict[str, Any] = {
-                "response_mime_type": "application/json",
-                "temperature": temperature,
-            }
-            if system_instruction:
-                config["system_instruction"] = system_instruction
+        config: Dict[str, Any] = {
+            "response_mime_type": "application/json",
+            "temperature": temperature,
+        }
+        if system_instruction:
+            config["system_instruction"] = system_instruction
 
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=[prompt],
-                config=config,
-            )
-            if response.text:
-                return json.loads(response.text)
-            return None
-        except Exception as e:
-            logger.error(f"Gemini generate_structured_json failed: {e}")
-            return None
+        for model_to_try in self._get_candidate_models():
+            try:
+                response = client.models.generate_content(
+                    model=model_to_try,
+                    contents=[prompt],
+                    config=config,
+                )
+                if response.text:
+                    return json.loads(response.text)
+            except Exception as e:
+                logger.warning(f"Gemini generate_structured_json with {model_to_try} failed: {e}. Trying fallback if available.")
+
+        return None
+
 
 
 # Global singleton instance
