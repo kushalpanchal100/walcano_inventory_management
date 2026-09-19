@@ -12,9 +12,11 @@ import {
   ShieldCheck,
   Package,
   Layers,
+  Pencil,
 } from 'lucide-react';
 import {
   autoMapSingleProduct,
+  saveManualMapping,
   QuickBooksInventoryItem,
 } from '@/lib/api';
 
@@ -49,6 +51,40 @@ export default function AiAutoMapModal({
     attributes?: Record<string, any>;
   } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Manual editing state inside modal
+  const [isEditingManually, setIsEditingManually] = useState<boolean>(false);
+  const [manualInputName, setManualInputName] = useState<string>('');
+  const [isSavingManual, setIsSavingManual] = useState<boolean>(false);
+
+  const handleSaveManualInModal = async () => {
+    const trimmed = manualInputName.trim();
+    if (!trimmed || !selectedWalcanoName) return;
+    setIsSavingManual(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await saveManualMapping(selectedWalcanoName, trimmed);
+      if (res.success) {
+        setSelectedMappingResult({
+          walcanoName: selectedWalcanoName,
+          surfacesName: trimmed,
+          confidence: 1.0,
+          reasoning: 'Manually specified by user',
+          isUnique: true,
+          attributes: selectedMappingResult?.attributes,
+        });
+        setIsEditingManually(false);
+        onMappingApplied();
+      } else {
+        setErrorMessage(res.message || 'Failed to save manual mapping');
+      }
+    } catch (err: any) {
+      setErrorMessage(`Error: ${err.message || err}`);
+    } finally {
+      setIsSavingManual(false);
+    }
+  };
 
   // Available unique Walcano product list strictly from active inventory
   const availableWalcanoProducts = useMemo(() => {
@@ -467,6 +503,70 @@ export default function AiAutoMapModal({
                 <span>{selectedMappingResult.reasoning}</span>
               </div>
 
+              {/* Manual Name Editor inside Modal */}
+              {isEditingManually ? (
+                <div style={{ marginBottom: '16px', padding: '14px 18px', background: '#FFFFFF', border: '1.5px solid #F59E0B', borderRadius: '10px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#78350F', marginBottom: '6px' }}>
+                    Custom Surfaces Tiles Product Name (Manual Entry):
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={manualInputName}
+                      onChange={(e) => setManualInputName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveManualInModal();
+                        if (e.key === 'Escape') setIsEditingManually(false);
+                      }}
+                      placeholder="Enter custom Surfaces Tiles name..."
+                      disabled={isSavingManual}
+                      autoFocus
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#0F172A',
+                        borderRadius: '8px',
+                        border: '1.5px solid #CBD5E1',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveManualInModal}
+                      disabled={isSavingManual || !manualInputName.trim()}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '8px 14px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        background: '#16A34A',
+                        borderColor: '#15803D',
+                        color: '#FFFFFF',
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isSavingManual ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />}
+                      <span>Save Entry</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingManually(false)}
+                      disabled={isSavingManual}
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 12px', fontSize: '12px' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               {/* Status and Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingTop: '10px', borderTop: '1px dashed #FDE68A' }}>
                 <span style={{ fontSize: '12px', color: '#16A34A', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -474,20 +574,36 @@ export default function AiAutoMapModal({
                   Mapping successfully saved to catalog and synchronized with inventory!
                 </span>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const prod = selectedProductObj;
-                    runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
-                  }}
-                  disabled={isMappingSelected}
-                  className="btn btn-secondary"
-                  style={{ fontSize: '11px', padding: '5px 12px', color: '#7C3AED', borderColor: '#DDD6FE', background: '#FFFFFF' }}
-                  title="Regenerate another unique variant with Gemini AI"
-                >
-                  <RefreshCw size={12} className={isMappingSelected ? 'animate-spin' : ''} />
-                  <span>Regenerate Unique Name</span>
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualInputName(selectedMappingResult.surfacesName);
+                      setIsEditingManually(true);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '11px', padding: '5px 12px', color: '#B45309', borderColor: '#FDE68A', background: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    title="Edit this Surfaces product name manually"
+                  >
+                    <Pencil size={11} />
+                    <span>Edit Manually</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prod = selectedProductObj;
+                      runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
+                    }}
+                    disabled={isMappingSelected}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '11px', padding: '5px 12px', color: '#7C3AED', borderColor: '#DDD6FE', background: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    title="Regenerate another unique variant with Gemini AI"
+                  >
+                    <RefreshCw size={12} className={isMappingSelected ? 'animate-spin' : ''} />
+                    <span>Regenerate Unique Name</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -505,20 +621,91 @@ export default function AiAutoMapModal({
                 Ready to Auto-Map "{selectedWalcanoName}"
               </h4>
               <p style={{ fontSize: '12px', color: '#64748B', maxWidth: '420px', margin: '0 auto 14px' }}>
-                Click below to analyze this product's specifications and generate a unique Surfaces Tiles product name using Gemini AI.
+                Automatically generate a unique Surfaces Tiles product name using Gemini AI, or enter your own custom name manually.
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  const prod = selectedProductObj;
-                  runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
-                }}
-                className="btn btn-ai"
-                style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 800 }}
-              >
-                <Sparkles size={14} />
-                <span>Generate Unique Name</span>
-              </button>
+
+              {isEditingManually ? (
+                <div style={{ maxWidth: '480px', margin: '0 auto 16px', padding: '14px', background: '#FFFFFF', border: '1.5px solid #F59E0B', borderRadius: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={manualInputName}
+                      onChange={(e) => setManualInputName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveManualInModal();
+                        if (e.key === 'Escape') setIsEditingManually(false);
+                      }}
+                      placeholder="Enter custom Surfaces Tiles name..."
+                      disabled={isSavingManual}
+                      autoFocus
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        borderRadius: '8px',
+                        border: '1.5px solid #CBD5E1',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveManualInModal}
+                      disabled={isSavingManual || !manualInputName.trim()}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '8px 14px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        background: '#16A34A',
+                        borderColor: '#15803D',
+                        color: '#FFFFFF',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isSavingManual ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />}
+                      <span>Save</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingManually(false)}
+                      disabled={isSavingManual}
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 12px', fontSize: '12px' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prod = selectedProductObj;
+                      runAutoMap(selectedWalcanoName, prod?.sku, prod?.category);
+                    }}
+                    className="btn btn-ai"
+                    style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 800 }}
+                  >
+                    <Sparkles size={14} />
+                    <span>Auto-Match with Gemini AI</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualInputName('');
+                      setIsEditingManually(true);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                  >
+                    <Pencil size={12} />
+                    <span>Enter Manually</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

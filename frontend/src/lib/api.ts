@@ -379,6 +379,13 @@ export async function acceptAiMapping(
   };
 }
 
+export async function saveManualMapping(
+  walcano_name: string,
+  surfaces_name: string
+): Promise<{ success: boolean; message?: string }> {
+  return acceptAiMapping(walcano_name, surfaces_name, 1.0, 'Manual user entry');
+}
+
 export async function getRestockInsights(
   thresholdLow: number = 10,
   demo: boolean = false

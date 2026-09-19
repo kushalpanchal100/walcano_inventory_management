@@ -10,6 +10,7 @@ import {
   getQuickBooksAuthUrl,
   disconnectQuickBooks,
   autoMapSingleProduct,
+  saveManualMapping,
   QuickBooksInventoryItem,
   QuickBooksStatus,
 } from '@/lib/api';
@@ -32,6 +33,8 @@ import {
   Unlink,
   TrendingDown,
   ChevronRight,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { downloadInventoryCsv } from '@/lib/csvExport';
 import AiCopilotDrawer from '@/components/AiCopilotDrawer';
@@ -68,6 +71,79 @@ export default function QuickBooksInventoryPage() {
     type: 'success' | 'info' | 'error';
     surfacesName?: string;
   } | null>(null);
+
+  // State for inline manual editing of Surfaces Tiles product name
+  const [editingRowKey, setEditingRowKey] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
+  const [isSavingManual, setIsSavingManual] = useState<boolean>(false);
+
+  const startEditing = (item: QuickBooksInventoryItem) => {
+    const key = item.id || item.sku || item.name;
+    setEditingRowKey(key);
+    setEditingValue(item.surfaces_name || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingRowKey(null);
+    setEditingValue('');
+  };
+
+  const saveManualEdit = async (item: QuickBooksInventoryItem) => {
+    const key = item.id || item.sku || item.name;
+    const trimmed = editingValue.trim();
+    if (!trimmed) {
+      setToastMessage({
+        text: 'Surfaces Tiles product name cannot be empty.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsSavingManual(true);
+    const walcanoName = (item.walcano_name || item.name || '').trim();
+
+    try {
+      const res = await saveManualMapping(walcanoName, trimmed);
+      if (res.success) {
+        setItems((prevItems) =>
+          prevItems.map((it) => {
+            const currentKey = it.id || it.sku || it.name;
+            if (currentKey === key) {
+              return {
+                ...it,
+                surfaces_name: trimmed,
+                is_mapped: true,
+                mapping_note: 'Manual user entry',
+              };
+            }
+            return it;
+          })
+        );
+        setEditingRowKey(null);
+        setEditingValue('');
+        setToastMessage({
+          text: `Manual entry saved! "${walcanoName}" mapped to "${trimmed}"`,
+          type: 'success',
+          surfacesName: trimmed,
+        });
+      } else {
+        setToastMessage({
+          text: res.message || 'Failed to save manual mapping',
+          type: 'error',
+        });
+      }
+    } catch (err: any) {
+      setToastMessage({
+        text: `Error saving manual mapping: ${err.message || err}`,
+        type: 'error',
+      });
+    } finally {
+      setIsSavingManual(false);
+      setTimeout(() => {
+        setToastMessage((cur) => (cur?.type === 'success' ? null : cur));
+      }, 5000);
+    }
+  };
 
   const openAutoMapModalForItem = (item: QuickBooksInventoryItem) => {
     const walcanoName = (item.walcano_name || item.name || '').trim();
@@ -1133,18 +1209,93 @@ export default function QuickBooksInventoryPage() {
 
                       {/* Column 2: Surfaces Tiles Product Name */}
                       <td>
-                        {isMapped && item.surfaces_name ? (
+                        {editingRowKey === (item.id || item.sku || item.name) ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%', minWidth: '280px', maxWidth: '420px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <input
+                                type="text"
+                                value={editingValue}
+                                onChange={(e) => setEditingValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveManualEdit(item);
+                                  if (e.key === 'Escape') cancelEditing();
+                                }}
+                                autoFocus
+                                placeholder="Enter Surfaces Tiles product name..."
+                                disabled={isSavingManual}
+                                style={{
+                                  flex: 1,
+                                  padding: '6px 10px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  color: '#0F172A',
+                                  background: '#FFFFFF',
+                                  border: '1.5px solid #F59E0B',
+                                  borderRadius: '6px',
+                                  outline: 'none',
+                                  boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.15)',
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => saveManualEdit(item)}
+                                disabled={isSavingManual || !editingValue.trim()}
+                                className="btn btn-primary"
+                                style={{
+                                  padding: '6px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  background: '#16A34A',
+                                  borderColor: '#15803D',
+                                  color: '#FFFFFF',
+                                  borderRadius: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Save manual entry (Enter)"
+                              >
+                                {isSavingManual ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />}
+                                <span>Save</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditing}
+                                disabled={isSavingManual}
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: '6px 9px',
+                                  fontSize: '11px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  color: '#64748B',
+                                }}
+                                title="Cancel (Esc)"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748B' }}>
+                              Press <kbd style={{ background: '#E2E8F0', padding: '1px 5px', borderRadius: '3px', fontSize: '10px' }}>Enter</kbd> to save manual entry
+                            </div>
+                          </div>
+                        ) : isMapped && item.surfaces_name ? (
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
                                 <span className="pill pill-surfaces" style={{ fontSize: '9px', padding: '1px 5px' }}>
                                   MAPPED
                                 </span>
-                                {item.mapping_note && item.mapping_note.toLowerCase().includes('gemini') && (
+                                {item.mapping_note && item.mapping_note.toLowerCase().includes('manual') ? (
+                                  <span className="pill pill-neutral" style={{ fontSize: '9px', padding: '1px 5px', background: '#F1F5F9', color: '#475569' }}>
+                                    ✍️ Manual
+                                  </span>
+                                ) : item.mapping_note && item.mapping_note.toLowerCase().includes('gemini') ? (
                                   <span className="pill pill-ai" style={{ fontSize: '9px', padding: '1px 5px' }}>
                                     ✨ Gemini AI
                                   </span>
-                                )}
+                                ) : null}
                               </div>
                               <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F', lineHeight: '1.3' }}>
                                 {item.surfaces_name}
@@ -1155,29 +1306,52 @@ export default function QuickBooksInventoryPage() {
                                 </div>
                               )}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => openAutoMapModalForItem(item)}
-                              className="btn btn-secondary"
-                              style={{
-                                padding: '3px 8px',
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                color: '#7C3AED',
-                                borderColor: '#DDD6FE',
-                                background: '#F5F3FF',
-                                borderRadius: '5px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                flexShrink: 0,
-                                cursor: 'pointer',
-                              }}
-                              title="Re-run Auto Mapping: generate a fresh unique Surfaces name with Gemini AI"
-                            >
-                              <Sparkles size={10} />
-                              <span>Auto Mapping</span>
-                            </button>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                              <button
+                                type="button"
+                                onClick={() => startEditing(item)}
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: '3px 7px',
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  color: '#B45309',
+                                  borderColor: '#FDE68A',
+                                  background: '#FEFDF8',
+                                  borderRadius: '5px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Manually edit Surfaces product name"
+                              >
+                                <Pencil size={10} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openAutoMapModalForItem(item)}
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: '3px 8px',
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  color: '#7C3AED',
+                                  borderColor: '#DDD6FE',
+                                  background: '#F5F3FF',
+                                  borderRadius: '5px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Re-run Auto Mapping: generate a fresh unique Surfaces name with Gemini AI"
+                              >
+                                <Sparkles size={10} />
+                                <span>Auto Mapping</span>
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1202,7 +1376,29 @@ export default function QuickBooksInventoryPage() {
                               title="Auto-map this specific Walcano product and generate a unique Surfaces Tiles product name using Gemini AI"
                             >
                               <Sparkles size={11} />
-                              <span>Auto Mapping</span>
+                              <span>Auto-Match</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => startEditing(item)}
+                              className="btn btn-secondary"
+                              style={{
+                                padding: '4px 9px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: '#475569',
+                                borderColor: '#CBD5E1',
+                                background: '#FFFFFF',
+                              }}
+                              title="Manually enter Surfaces Tiles product name"
+                            >
+                              <Pencil size={11} color="#64748B" />
+                              <span>Edit</span>
                             </button>
                           </div>
                         )}
