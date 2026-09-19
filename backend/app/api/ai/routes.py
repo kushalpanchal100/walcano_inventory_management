@@ -1,4 +1,4 @@
-"""AI API routes for Walcano Copilot and automated catalog mapping."""
+"""AI API routes for Walcano Copilot and inventory intelligence."""
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -15,14 +15,13 @@ from app.integrations.quickbooks.product_mapping import (
 from app.services.ai import (
     gemini_provider,
     copilot_service,
-    auto_mapper_service,
     restock_service,
     semantic_search_service,
 )
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["AI Copilot & Smart Mapping"])
+router = APIRouter(prefix="/ai", tags=["AI Copilot & Smart Tools"])
 settings = get_settings()
 _qbo_client = QuickBooksClient()
 
@@ -40,14 +39,6 @@ class AcceptMappingRequest(BaseModel):
     surfaces_name: str = Field(..., description="Surfaces tile product name")
     confidence: Optional[float] = Field(default=1.0, description="Match confidence score")
     note: Optional[str] = Field(default="AI confirmed mapping", description="Optional note or reference")
-
-
-class AutoMapProductRequest(BaseModel):
-    walcano_name: Optional[str] = Field(default=None, description="Walcano product name")
-    surfaces_name: Optional[str] = Field(default=None, description="Surfaces tile product name")
-    sku: Optional[str] = Field(default=None, description="Product SKU")
-    category: Optional[str] = Field(default=None, description="Product category")
-    auto_save: bool = Field(default=True, description="Whether to persist the confirmed mapping")
 
 
 class SemanticSearchRequest(BaseModel):
@@ -77,7 +68,6 @@ async def get_ai_status():
         "notice": None if is_conf else "Using high-accuracy local heuristics. Set GEMINI_API_KEY in backend/.env for full live Gemini reasoning.",
         "services": [
             "InventoryCopilotService",
-            "ProductAutoMapperService",
             "RestockInsightsService",
             "SemanticSearchService",
         ],
@@ -106,59 +96,6 @@ async def chat_with_copilot(req: ChatRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI chat error: {str(e)}",
-        )
-
-
-@router.post("/auto-map")
-async def generate_auto_mappings(
-    demo: bool = Query(False, description="Preview demo mode"),
-):
-    """
-    Scan inventory for unmapped items and generate intelligent AI mapping recommendations
-    with unique Surfaces Tiles product names generated via Gemini AI.
-    """
-    try:
-        valid_auth = await _qbo_client.get_valid_access_token()
-        inv_data = await _qbo_client.fetch_live_inventory(include_demo=demo or not bool(valid_auth))
-        items = inv_data.get("items", [])
-        unmapped = [it for it in items if not it.get("is_mapped", False)]
-
-        suggestions = await auto_mapper_service.auto_map(unmapped)
-        return {
-            "unmapped_total": len(unmapped),
-            "suggestions_count": len(suggestions),
-            "suggestions": suggestions,
-            "provider": "gemini" if gemini_provider.is_configured else "heuristic",
-        }
-    except Exception as e:
-        logger.error(f"Error generating AI auto-mappings: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Auto-mapping error: {str(e)}",
-        )
-
-
-@router.post("/auto-map-product")
-async def auto_map_product(req: AutoMapProductRequest):
-    """
-    Trigger Auto Mapping for any Surfaces Tiles product or Walcano product.
-    Automatically maps to the corresponding Walcano Tiles product and generates
-    a unique Surfaces Tiles product name using Gemini AI based on mapped Walcano details.
-    """
-    try:
-        result = await auto_mapper_service.auto_map_single_product(
-            walcano_name=req.walcano_name,
-            surfaces_name=req.surfaces_name,
-            sku=req.sku,
-            category=req.category,
-            auto_save=req.auto_save,
-        )
-        return result
-    except Exception as e:
-        logger.error(f"Error in auto_map_single_product: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Auto-mapping error: {str(e)}",
         )
 
 

@@ -13,7 +13,6 @@ AI-powered inventory management system for **Wallcano Tiles** & **Surfaces Tiles
 
 ### 🤖 AI-Powered Intelligence (Gemini)
 - **Copilot Chat** — Conversational assistant that answers inventory questions, suggests filters, and provides actionable insights
-- **Auto-Mapper** — Automatically maps unmapped products between Wallcano and Surfaces Tiles catalogs using AI reasoning
 - **Restock Insights** — Proactive restock reports with stockout risk tiers, health scores, and urgency rankings
 - **Semantic Search** — Natural language product search across the entire tile catalog
 
@@ -21,7 +20,7 @@ AI-powered inventory management system for **Wallcano Tiles** & **Surfaces Tiles
 - Modern Next.js dashboard with responsive layout
 - Live inventory table with search, filters, and CSV export
 - AI Copilot side drawer for real-time chat
-- Auto-mapping modal with accept/reject workflows
+- Manual product mapping modal
 - Restock insights modal with risk tier visualizations
 
 ---
@@ -47,7 +46,7 @@ walcano_inventory_management/
 │   ├── app/
 │   │   ├── main.py                      # FastAPI app entrypoint
 │   │   ├── api/
-│   │   │   ├── ai/routes.py            # AI Copilot, auto-map, restock, semantic search
+│   │   │   ├── ai/routes.py            # AI Copilot, restock, semantic search
 │   │   │   └── quickbooks/routes.py    # OAuth flow, inventory, CSV export
 │   │   ├── config/settings.py          # Pydantic settings (env-based)
 │   │   ├── integrations/
@@ -56,7 +55,6 @@ walcano_inventory_management/
 │   │   │       └── product_mapping.py  # Custom mapping persistence
 │   │   └── services/
 │   │       └── ai/
-│   │           ├── auto_mapper_service.py
 │   │           ├── copilot_service.py
 │   │           ├── gemini_provider.py
 │   │           ├── restock_insights_service.py
@@ -78,8 +76,8 @@ walcano_inventory_management/
 │   │   ├── components/
 │   │   │   ├── DashboardLayout.tsx     # Sidebar + top nav layout
 │   │   │   ├── AiCopilotDrawer.tsx     # AI chat side panel
-│   │   │   ├── AiAutoMapModal.tsx      # Product auto-mapping modal
-│   │   │   └── AiRestockModal.tsx      # Restock insights modal
+│   │   │   ├── AiRestockModal.tsx      # Restock insights modal
+│   │   │   └── ManualMapModal.tsx      # Manual product mapping modal
 │   │   └── lib/
 │   │       ├── api.ts                  # Backend API client
 │   │       └── csvExport.ts            # CSV export utility
@@ -199,7 +197,6 @@ Base URL: `http://localhost:8000`
 | ------ | --------------------- | ---------------------------------------- |
 | GET    | `/status`             | AI provider configuration status         |
 | POST   | `/chat`               | Chat with the AI Inventory Copilot       |
-| POST   | `/auto-map`           | Generate AI product mapping suggestions  |
 | POST   | `/accept-mapping`     | Persist an accepted mapping              |
 | GET    | `/custom-mappings`    | List all confirmed mappings              |
 | DELETE | `/custom-mappings/:name` | Remove a custom mapping               |

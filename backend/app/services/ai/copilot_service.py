@@ -225,7 +225,7 @@ class InventoryCopilotService:
                     f"### 🔗 Unmapped Products ({len(unmapped)} of {total})\n\n"
                     f"**{len(unmapped)} items** in QuickBooks are not yet mapped to an authoritative Surfaces Tiles product.\n\n"
                     f"{items_list}{extra}\n\n"
-                    "Use the **✨ AI Auto-Map** button above to automatically match and confirm them with one click."
+                    "Use the manual mapping button on any product row in the table below to assign Surfaces Tiles specifications."
                 ),
                 "action": {
                     "action": "filter",

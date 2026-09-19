@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
         <p>Information retrieved from QuickBooks Online is strictly used to:</p>
         <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
           <li>Display real-time inventory counts and warehouse stock levels in your dashboard.</li>
-          <li>Perform AI-assisted catalog auto-mapping between QuickBooks items and Surfaces Tiles specification sheets.</li>
+          <li>Perform catalog mapping between QuickBooks items and Surfaces Tiles specification sheets.</li>
           <li>Generate stock restock alerts and downloadable inventory reports (CSV).</li>
         </ul>
       </section>

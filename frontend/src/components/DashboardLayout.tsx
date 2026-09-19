@@ -177,7 +177,7 @@ export default function DashboardLayout({
               </button>
             )}
 
-            {/* Custom action buttons (AI Copilot, Auto-Map, Restock, CSV Export) */}
+            {/* Custom action buttons (AI Copilot, Restock, CSV Export) */}
             {actions}
           </div>
         </div>

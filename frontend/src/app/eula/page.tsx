@@ -34,7 +34,7 @@ export default function EulaPage() {
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '10px' }}>3. Integration with QuickBooks Online</h2>
         <p>
           Our application integrates with Intuit QuickBooks Online via official OAuth 2.0 APIs. You authorize the application to access necessary 
-          inventory product listings, stock balances, and item details on your behalf for synchronization and AI catalog auto-mapping.
+          inventory product listings, stock balances, and item details on your behalf for synchronization and catalog mapping.
         </p>
       </section>
 
