@@ -39,6 +39,27 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-3.6-flash"
 
+    # PostgreSQL Database
+    DATABASE_URL: str = "postgresql://walcano_app:walcano_db_pass_2026@localhost:5432/walcano_inventory"
+
+    # JWT Authentication
+    JWT_SECRET_KEY: str = "walcano_secret_jwt_key_2026_super_secure_surfaces_tiles_platform"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+
+    # SMTP Email Service (for Password Reset OTP)
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: str = "noreply@wallcano.com"
+    SMTP_TLS: bool = True
+
+    # Initial Admin Account Seeding
+    INITIAL_ADMIN_EMAIL: str = "admin@wallcano.com"
+    INITIAL_ADMIN_PASSWORD: str = "Admin@Wallcano2026!"
+    INITIAL_ADMIN_NAME: str = "Wallcano Administrator"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

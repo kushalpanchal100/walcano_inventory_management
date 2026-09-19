@@ -29,6 +29,14 @@ export async function apiFetch<T = any>(
     ...(options.headers as Record<string, string>),
   };
 
+  // Automatically attach auth token if present in browser localStorage
+  if (typeof window !== 'undefined' && !headers['Authorization']) {
+    const token = localStorage.getItem('walcano_auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   try {
     const res = await fetch(url, {
       ...options,
@@ -404,5 +412,87 @@ export async function deleteCustomMapping(walcanoName: string): Promise<boolean>
     method: 'DELETE',
   });
   return res.ok;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   AUTHENTICATION & PASSWORD RESET API
+   ────────────────────────────────────────────────────────────────────────── */
+
+export interface User {
+  id: number;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'manager' | 'staff' | string;
+  is_active: boolean;
+  created_at: string;
+  last_login_at?: string | null;
+}
+
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export async function authLogin(email: string, password: string): Promise<{ ok: boolean; data?: AuthTokenResponse; error?: string }> {
+  const res = await apiFetch<AuthTokenResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  return { ok: res.ok, data: res.data, error: res.error };
+}
+
+export async function authRegister(
+  fullName: string,
+  email: string,
+  password: string
+): Promise<{ ok: boolean; data?: AuthTokenResponse; error?: string }> {
+  const res = await apiFetch<AuthTokenResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ full_name: fullName, email, password }),
+  });
+  return { ok: res.ok, data: res.data, error: res.error };
+}
+
+export async function authLogout(): Promise<boolean> {
+  try {
+    await apiFetch('/auth/logout', { method: 'POST' });
+  } catch {
+    // Ignore network error on logout
+  }
+  return true;
+}
+
+export async function authGetMe(): Promise<{ ok: boolean; user?: User; error?: string }> {
+  const res = await apiFetch<User>('/auth/me');
+  return { ok: res.ok, user: res.data, error: res.error };
+}
+
+export async function authForgotPassword(email: string): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const res = await apiFetch<{ message: string; success: boolean }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  return { ok: res.ok, message: res.data?.message, error: res.error };
+}
+
+export async function authVerifyOtp(email: string, otpCode: string): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const res = await apiFetch<{ message: string; success: boolean }>('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp_code: otpCode }),
+  });
+  return { ok: res.ok, message: res.data?.message, error: res.error };
+}
+
+export async function authResetPassword(
+  email: string,
+  otpCode: string,
+  newPassword: string
+): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const res = await apiFetch<{ message: string; success: boolean }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp_code: otpCode, new_password: newPassword }),
+  });
+  return { ok: res.ok, message: res.data?.message, error: res.error };
 }
 

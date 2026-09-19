@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Walcano & Surfaces — Enterprise Inventory Platform",
@@ -14,9 +15,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <main style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-          {children}
-        </main>
+        <AuthProvider>
+          <main style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

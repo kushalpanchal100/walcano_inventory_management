@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, RefreshCw } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Search, RefreshCw, LogOut, User as UserIcon } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -27,7 +29,83 @@ export default function DashboardLayout({
   onRefreshClick,
   isRefreshing = false,
 }: DashboardLayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [searchValue, setSearchValue] = useState('');
+
+  // Route protection guard
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace(`/login?next=${encodeURIComponent(pathname || '/dashboard/inventory')}`);
+    }
+  }, [isLoading, isAuthenticated, pathname, router]);
+
+  // Loading state while verifying token
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-workspace)',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+          <img
+            src="/brands/wallcano-logo.png"
+            alt="Wallcano Tiles"
+            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+          />
+          <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+          <img
+            src="/brands/surfaces-logo.png"
+            alt="Surfaces Tiles"
+            style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+          />
+        </div>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid #E2E8F0',
+            borderTopColor: 'var(--surfaces-gold)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+          Authenticating platform session...
+        </span>
+        <style jsx>{`
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Not authenticated fallback
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // Generate initials for avatar
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg-workspace)' }}>
@@ -179,6 +257,105 @@ export default function DashboardLayout({
 
             {/* Custom action buttons (AI Copilot, Restock, CSV Export) */}
             {actions}
+
+            {/* User Profile & Sign Out */}
+            {user && (
+              <>
+                <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)', margin: '0 4px' }} />
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '4px 10px 4px 6px',
+                    borderRadius: '20px',
+                    background: '#F8FAFC',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  {/* Initials Avatar */}
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: '#0F172A',
+                      color: 'var(--surfaces-gold)',
+                      border: '1.5px solid var(--surfaces-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      letterSpacing: '0.02em',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {getInitials(user.full_name)}
+                  </div>
+
+                  {/* User Details */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#0F172A',
+                        maxWidth: '120px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={user.full_name}
+                    >
+                      {user.full_name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        color: user.role === 'admin' ? '#B8860B' : '#64748B',
+                      }}
+                    >
+                      {user.role === 'admin' ? 'Administrator' : 'Staff'}
+                    </span>
+                  </div>
+
+                  {/* Sign Out Button */}
+                  <button
+                    type="button"
+                    onClick={logout}
+                    title="Sign Out"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#94A3B8',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      marginLeft: '2px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#EF4444';
+                      e.currentTarget.style.background = '#FEE2E2';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = '#94A3B8';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
