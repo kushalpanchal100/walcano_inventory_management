@@ -3,7 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Walcano & Surfaces — Enterprise Inventory Platform",
+  title: "Wallcano & Surfaces — Enterprise Inventory Platform",
   description: "AI-Powered Centralized Inventory Management for Wallcano Tiles (B2B) and Surfaces Tiles (B2C)",
 };
 

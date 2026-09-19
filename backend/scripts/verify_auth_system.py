@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end verification script for Walcano Authentication & Password Reset System."""
+"""End-to-end verification script for Wallcano Authentication & Password Reset System."""
 
 import json
 import urllib.request

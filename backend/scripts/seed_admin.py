@@ -53,7 +53,7 @@ def seed_admin(email: str, password: str, full_name: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Seed or update Walcano administrator account")
+    parser = argparse.ArgumentParser(description="Seed or update Wallcano administrator account")
     parser.add_argument("--email", default=settings.INITIAL_ADMIN_EMAIL, help="Administrator email")
     parser.add_argument("--password", default=settings.INITIAL_ADMIN_PASSWORD, help="Administrator password")
     parser.add_argument("--name", default=settings.INITIAL_ADMIN_NAME, help="Administrator full name")

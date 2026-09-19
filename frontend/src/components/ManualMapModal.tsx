@@ -133,7 +133,7 @@ export default function ManualMapModal({
                 Manual Product Mapping
               </h3>
               <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0' }}>
-                Map selected Walcano product directly to Surfaces Tiles catalog
+                Map selected Wallcano product directly to Surfaces Tiles catalog
               </p>
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function ManualMapModal({
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ margin: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="ai-modal-body" style={{ padding: '20px' }}>
-            {/* Selected Walcano Product Card */}
+            {/* Selected Wallcano Product Card */}
             <div
               style={{
                 padding: '12px 14px',
@@ -163,7 +163,7 @@ export default function ManualMapModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
                 <span className="pill pill-wallcano" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                  SELECTED WALCANO PRODUCT
+                  SELECTED WALLCANO PRODUCT
                 </span>
                 {item.id && (
                   <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>

@@ -1,4 +1,4 @@
-"""Script to seed Walcano & Surfaces Tiles inventory items directly into connected QuickBooks Online company."""
+"""Script to seed Wallcano & Surfaces Tiles inventory items directly into connected QuickBooks Online company."""
 
 import asyncio
 import datetime
@@ -85,63 +85,63 @@ TILES_DATA = [
         "sku": "WAL-STN-3060",
         "qty": 120.0,
         "unit_price": 31.00,
-        "description": "Walcano Stoneage Darkgrey feature wall tile 30x60cm.",
+        "description": "Wallcano Stoneage Darkgrey feature wall tile 30x60cm.",
     },
     {
         "name": "Eternal Satuario 60x120 Polished",
         "sku": "WAL-SAT-60120",
         "qty": 85.0,
         "unit_price": 58.00,
-        "description": "Walcano Eternal Satuario polished porcelain tile 60x120cm.",
+        "description": "Wallcano Eternal Satuario polished porcelain tile 60x120cm.",
     },
     {
         "name": "Eternal Satuario 60x60 Matt",
         "sku": "WAL-SAT-6060",
         "qty": 65.0,
         "unit_price": 42.00,
-        "description": "Walcano Eternal Satuario matt porcelain tile 60x60cm.",
+        "description": "Wallcano Eternal Satuario matt porcelain tile 60x60cm.",
     },
     {
         "name": "Spectra Brown Endless 60x60 Polished",
         "sku": "WAL-SPB-6060",
         "qty": 90.0,
         "unit_price": 46.00,
-        "description": "Walcano Spectra Brown Endless polished porcelain tile 60x60cm.",
+        "description": "Wallcano Spectra Brown Endless polished porcelain tile 60x60cm.",
     },
     {
         "name": "Splendor Gold 60x120 Matt",
         "sku": "WAL-SPL-60120",
         "qty": 40.0,
         "unit_price": 62.00,
-        "description": "Walcano Splendor Gold matt porcelain tile 60x120cm.",
+        "description": "Wallcano Splendor Gold matt porcelain tile 60x120cm.",
     },
     {
         "name": "Brooks Grey 60x120 Matt",
         "sku": "WAL-BRK-60120",
         "qty": 55.0,
         "unit_price": 52.00,
-        "description": "Walcano Brooks Grey matt porcelain tile 60x120cm.",
+        "description": "Wallcano Brooks Grey matt porcelain tile 60x120cm.",
     },
     {
         "name": "Burnt Charcoal 60x120 Glossy",
         "sku": "WAL-BUR-60120",
         "qty": 35.0,
         "unit_price": 75.00,
-        "description": "Walcano Burnt Charcoal glossy glass tile 60x120cm.",
+        "description": "Wallcano Burnt Charcoal glossy glass tile 60x120cm.",
     },
     {
         "name": "Sunset Green 60x120 Polished",
         "sku": "WAL-SNG-60120",
         "qty": 28.0,
         "unit_price": 64.00,
-        "description": "Walcano Sunset Green polished porcelain tile 60x120cm.",
+        "description": "Wallcano Sunset Green polished porcelain tile 60x120cm.",
     },
     {
         "name": "Alfresco Wood 60x90cm 2cm Outdoor Paver",
         "sku": "WAL-ALF-6090",
         "qty": 70.0,
         "unit_price": 48.00,
-        "description": "Walcano Alfresco Wood outdoor porcelain paver 60x90cm (2cm).",
+        "description": "Wallcano Alfresco Wood outdoor porcelain paver 60x90cm (2cm).",
     },
 ]
 

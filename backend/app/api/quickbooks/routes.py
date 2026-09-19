@@ -124,7 +124,7 @@ async def export_inventory_csv(
     output.write("\ufeff")
     writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
     writer.writerow([
-        "Walcano Product Name",
+        "Wallcano Product Name",
         "Surfaces Product Name",
         "Mapping Status",
         "SKU",

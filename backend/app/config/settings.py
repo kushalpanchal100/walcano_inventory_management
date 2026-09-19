@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Application
     APP_ENV: str = "development"
     DEBUG: bool = True
-    APP_NAME: str = "Walcano Inventory Management"
+    APP_NAME: str = "Wallcano Inventory Management"
     APP_VERSION: str = "1.0.0"
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"

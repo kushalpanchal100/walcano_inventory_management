@@ -32,7 +32,7 @@ export function downloadInventoryCsv(
   }
 
   const headers = [
-    'Walcano Product Name',
+    'Wallcano Product Name',
     'Surfaces Product Name',
     'Mapping Status',
     'SKU',

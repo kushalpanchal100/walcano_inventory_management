@@ -1,4 +1,4 @@
-"""AI API routes for Walcano Copilot and inventory intelligence."""
+"""AI API routes for Wallcano Copilot and inventory intelligence."""
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -36,14 +36,14 @@ class ChatRequest(BaseModel):
 
 
 class AcceptMappingRequest(BaseModel):
-    walcano_name: str = Field(..., description="Walcano product name")
+    walcano_name: str = Field(..., description="Wallcano product name")
     surfaces_name: str = Field(..., description="Surfaces tile product name")
     confidence: Optional[float] = Field(default=1.0, description="Match confidence score")
     note: Optional[str] = Field(default="AI confirmed mapping", description="Optional note or reference")
 
 
 class AutoMapProductRequest(BaseModel):
-    walcano_name: Optional[str] = Field(default=None, description="Walcano product name")
+    walcano_name: Optional[str] = Field(default=None, description="Wallcano product name")
     surfaces_name: Optional[str] = Field(default=None, description="Surfaces tile product name")
     sku: Optional[str] = Field(default=None, description="Product SKU")
     category: Optional[str] = Field(default=None, description="Product category")
@@ -112,9 +112,9 @@ async def chat_with_copilot(req: ChatRequest):
 @router.post("/auto-map-product")
 async def auto_map_product(req: AutoMapProductRequest):
     """
-    Trigger Auto Mapping for any Surfaces Tiles product or Walcano product using Gemini AI.
-    Automatically maps to the corresponding Walcano Tiles product and generates
-    a unique Surfaces Tiles product name using Gemini AI based on mapped Walcano details.
+    Trigger Auto Mapping for any Surfaces Tiles product or Wallcano product using Gemini AI.
+    Automatically maps to the corresponding Wallcano Tiles product and generates
+    a unique Surfaces Tiles product name using Gemini AI based on mapped Wallcano details.
     """
     try:
         result = await auto_mapper_service.auto_map_single_product(

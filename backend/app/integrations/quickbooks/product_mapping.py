@@ -1,4 +1,4 @@
-"""Authoritative product mapping between Walcano Tiles and Surfaces Tiles.
+"""Authoritative product mapping between Wallcano Tiles and Surfaces Tiles.
 
 Derived directly from WallcanoSurfacesNames - Sheet1.pdf.
 Provides precise matching based on product line, size, finish, and attributes.
@@ -54,7 +54,7 @@ def save_custom_mapping(
 
 
 def delete_custom_mapping(walcano_name: str) -> bool:
-    """Delete a custom mapping by Walcano product name."""
+    """Delete a custom mapping by Wallcano product name."""
     mappings = load_custom_mappings()
     key = walcano_name.strip().lower()
     if key in mappings:
@@ -273,19 +273,19 @@ def match_product_mapping(item_name: str, sku: Optional[str] = None) -> Dict[str
                 "mapping_note": "Exact Surfaces product match",
             }
 
-    # 2. Match based on Walcano product line
+    # 2. Match based on Wallcano product line
     matching_candidates: List[ParsedMappingEntry] = []
 
     for entry in PARSED_ENTRIES:
         entry_w_tokens = set(entry.walcano_tokens)
-        # Check if Walcano name base is in item_name
+        # Check if Wallcano name base is in item_name
         walcano_base = entry.walcano_name.lower().replace("endless", "").strip()
         if walcano_base and walcano_base in item_name.lower():
             matching_candidates.append(entry)
         elif entry_w_tokens and entry_w_tokens.issubset(item_tokens):
             matching_candidates.append(entry)
 
-    # If no subset match, try high token overlap for Walcano name
+    # If no subset match, try high token overlap for Wallcano name
     if not matching_candidates:
         scored = []
         for entry in PARSED_ENTRIES:
@@ -319,7 +319,7 @@ def match_product_mapping(item_name: str, sku: Optional[str] = None) -> Dict[str
             "mapping_note": "No Surfaces Tiles mapping available in reference PDF",
         }
 
-    # Extract all variant Surfaces names for this Walcano line
+    # Extract all variant Surfaces names for this Wallcano line
     all_variant_names = list(dict.fromkeys(e.surfaces_name for e in matching_candidates))
 
     # If only 1 candidate, that's our match

@@ -751,22 +751,22 @@ export default function QuickBooksInventoryPage() {
           </div>
         </div>
 
-        {/* Metric 3: Walcano Exclusive / Unmapped */}
+        {/* Metric 3: Wallcano Exclusive / Unmapped */}
         <div
           className="stat-card stat-card-ribbon-wallcano"
           onClick={() => setMappingFilter('unmapped')}
           style={{ cursor: 'pointer' }}
-          title="Click to filter Walcano unmapped items"
+          title="Click to filter Wallcano unmapped items"
         >
           <div className="stat-title" style={{ color: 'var(--wallcano-slate)' }}>
             <Unlink size={14} color="var(--wallcano-slate)" />
-            <span>Walcano Exclusive</span>
+            <span>Wallcano Exclusive</span>
           </div>
           <div className="stat-value" style={{ color: 'var(--wallcano-dark)' }}>
             {isLoading ? '-' : metrics.unmappedCount}
           </div>
           <div className="stat-desc" style={{ color: 'var(--text-muted)' }}>
-            Unmapped / Exclusive to Walcano
+            Unmapped / Exclusive to Wallcano
           </div>
         </div>
 
@@ -871,7 +871,7 @@ export default function QuickBooksInventoryPage() {
               }}
             >
               <Unlink size={13} />
-              <span>Walcano Only ({metrics.unmappedCount})</span>
+              <span>Wallcano Only ({metrics.unmappedCount})</span>
             </button>
           </div>
 

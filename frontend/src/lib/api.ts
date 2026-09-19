@@ -1,5 +1,5 @@
 /**
- * API client for Walcano & Surfaces Tiles - QuickBooks Live Inventory System.
+ * API client for Wallcano & Surfaces Tiles - QuickBooks Live Inventory System.
  */
 
 export function getApiBase(): string {
@@ -31,7 +31,7 @@ export async function apiFetch<T = any>(
 
   // Automatically attach auth token if present in browser localStorage
   if (typeof window !== 'undefined' && !headers['Authorization']) {
-    const token = localStorage.getItem('walcano_auth_token');
+    const token = localStorage.getItem('wallcano_auth_token') || localStorage.getItem('walcano_auth_token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

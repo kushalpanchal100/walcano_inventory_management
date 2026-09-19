@@ -247,7 +247,7 @@ export default function AiAutoMapModal({
                 </span>
               </div>
               <p style={{ fontSize: '12px', color: '#64748B', marginTop: '3px' }}>
-                The selected Walcano product is the <strong>single source of truth</strong> for generating the unique Surfaces Tiles product name.
+                The selected Wallcano product is the <strong>single source of truth</strong> for generating the unique Surfaces Tiles product name.
               </p>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function AiAutoMapModal({
 
         {/* Modal Body */}
         <div className="ai-modal-body" style={{ padding: '24px' }}>
-          {/* ─── 1. SELECTED WALCANO PRODUCT (SINGLE SOURCE OF TRUTH) ─── */}
+          {/* ─── 1. SELECTED WALLCANO PRODUCT (SINGLE SOURCE OF TRUTH) ─── */}
           <div
             style={{
               padding: '16px 20px',
@@ -279,7 +279,7 @@ export default function AiAutoMapModal({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="pill pill-wallcano" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                  SOURCE WALCANO PRODUCT
+                  SOURCE WALLCANO PRODUCT
                 </span>
                 <span style={{ fontSize: '11px', color: '#64748B' }}>
                   Single Source of Truth
@@ -752,7 +752,7 @@ export default function AiAutoMapModal({
         <div className="ai-modal-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748B' }}>
             <HelpCircle size={13} />
-            <span>Strict 1:1 mapping: only the selected Walcano product is used to generate the Surfaces product name.</span>
+            <span>Strict 1:1 mapping: only the selected Wallcano product is used to generate the Surfaces product name.</span>
           </div>
           <button
             type="button"

@@ -46,7 +46,7 @@ export default function AiCopilotDrawer({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: "### 👋 Welcome to Walcano & Surfaces AI Copilot!\nI have direct access to your live QuickBooks inventory catalog and Surfaces tile specifications.\n\n- Ask about **stock availability** or critical reorders.\n- Inquire about **tile sizes, finishes, or mapping**.\n- Or click one of the quick suggestions below!",
+      text: "### 👋 Welcome to Wallcano & Surfaces AI Copilot!\nI have direct access to your live QuickBooks inventory catalog and Surfaces tile specifications.\n\n- Ask about **stock availability** or critical reorders.\n- Inquire about **tile sizes, finishes, or mapping**.\n- Or click one of the quick suggestions below!",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -203,7 +203,7 @@ export default function AiCopilotDrawer({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
-                  Walcano AI Copilot
+                  Wallcano AI Copilot
                 </span>
               </div>
               <p style={{ fontSize: '11px', color: '#64748B', marginTop: '1px' }}>

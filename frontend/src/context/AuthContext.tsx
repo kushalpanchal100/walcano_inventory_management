@@ -12,7 +12,8 @@ import {
   authResetPassword,
 } from '@/lib/api';
 
-const TOKEN_KEY = 'walcano_auth_token';
+const TOKEN_KEY = 'wallcano_auth_token';
+const LEGACY_TOKEN_KEY = 'walcano_auth_token';
 
 interface AuthContextType {
   user: User | null;
@@ -44,14 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       document.cookie = `${TOKEN_KEY}=${jwtToken}; path=/; max-age=86400; SameSite=Lax`;
     } else {
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
       document.cookie = `${TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
+      document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
     }
   };
 
   // Validate existing token and load user profile on mount
   const refreshUser = useCallback(async () => {
     if (typeof window === 'undefined') return;
-    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedToken = localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
     if (!storedToken) {
       setUser(null);
       setToken(null);

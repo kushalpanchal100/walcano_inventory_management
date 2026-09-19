@@ -1,9 +1,9 @@
-"""AI Services Package for Walcano Inventory Management.
+"""AI Services Package for Wallcano Inventory Management.
 
 Provides specialized AI services for:
 - GeminiProvider: Client lifecycle and structured prompt execution.
 - InventoryCopilotService: Conversational inventory queries and interactive UI actions.
-- ProductAutoMapperService: Catalog matching between Walcano and Surfaces.
+- ProductAutoMapperService: Catalog matching between Wallcano and Surfaces.
 - RestockInsightsService: Predictive reorders and stock health forecasting.
 - SemanticSearchService: Natural language tile concept search.
 """

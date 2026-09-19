@@ -68,7 +68,7 @@ export default function Home() {
         />
 
         <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-          Walcano & Surfaces Inventory Platform
+          Wallcano & Surfaces Inventory Platform
         </div>
         <p style={{ color: '#64748B', fontSize: '12px' }}>
           Initializing QuickBooks live synchronization...

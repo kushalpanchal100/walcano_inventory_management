@@ -9,7 +9,7 @@ export default function EulaPage() {
           End-User License Agreement (EULA)
         </h1>
         <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
-          Effective Date: January 1, 2026 | Walcano &amp; Surfaces Tiles Inventory Management
+          Effective Date: January 1, 2026 | Wallcano &amp; Surfaces Tiles Inventory Management
         </p>
       </header>
 
@@ -17,7 +17,7 @@ export default function EulaPage() {
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '10px' }}>1. Agreement to Terms</h2>
         <p>
           This End-User License Agreement (&ldquo;Agreement&rdquo;) is a legal agreement between you (&ldquo;User&rdquo; or &ldquo;Licensee&rdquo;) and 
-          Walcano &amp; Surfaces Tiles (&ldquo;Licensor&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;) for the use of the Walcano Inventory Management application.
+          Wallcano &amp; Surfaces Tiles (&ldquo;Licensor&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;) for the use of the Wallcano Inventory Management application.
           By accessing or using our software, you agree to be bound by the terms and conditions set forth herein.
         </p>
       </section>
@@ -25,7 +25,7 @@ export default function EulaPage() {
       <section style={{ marginBottom: '28px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '10px' }}>2. Scope of License</h2>
         <p>
-          Licensor grants you a non-exclusive, non-transferable, revocable license to use the Walcano Inventory Management platform solely for internal 
+          Licensor grants you a non-exclusive, non-transferable, revocable license to use the Wallcano Inventory Management platform solely for internal 
           business operations, specifically inventory tracking, catalog mapping, and synchronized integration with QuickBooks Online accounting.
         </p>
       </section>
