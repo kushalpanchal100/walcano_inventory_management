@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, RefreshCw, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, RefreshCw, LogOut, User as UserIcon, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import DynamicBrandBackground from '@/components/DynamicBrandBackground';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -33,6 +34,31 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [searchValue, setSearchValue] = useState('');
+  const [dashboardTheme, setDashboardTheme] = useState<'dark' | 'light'>('dark');
+
+  // Load persisted theme preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('walcano_dashboard_theme');
+      if (saved === 'light' || saved === 'dark') {
+        setDashboardTheme(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleDashboardTheme = () => {
+    setDashboardTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('walcano_dashboard_theme', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Route protection guard
   useEffect(() => {
@@ -44,51 +70,51 @@ export default function DashboardLayout({
   // Loading state while verifying token
   if (isLoading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-workspace)',
-          gap: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-          <img
-            src="/brands/wallcano-logo.png"
-            alt="Wallcano Tiles"
-            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
-          />
-          <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
-          <img
-            src="/brands/surfaces-logo.png"
-            alt="Surfaces Tiles"
-            style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
-          />
-        </div>
+      <DynamicBrandBackground variant={dashboardTheme}>
         <div
           style={{
-            width: '32px',
-            height: '32px',
-            border: '3px solid #E2E8F0',
-            borderTopColor: 'var(--surfaces-gold)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            background: 'rgba(255, 255, 255, 0.96)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            padding: '32px 40px',
+            borderRadius: '18px',
+            border: '1px solid rgba(223, 191, 119, 0.35)',
+            boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.4), 0 0 25px rgba(184, 134, 11, 0.12)',
           }}
-        />
-        <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-          Authenticating platform session...
-        </span>
-        <style jsx>{`
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </div>
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+            <img
+              src="/brands/wallcano-logo.png"
+              alt="Wallcano Tiles"
+              style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+            />
+            <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+            <img
+              src="/brands/surfaces-logo.png"
+              alt="Surfaces Tiles"
+              style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+            />
+          </div>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              border: '3px solid rgba(226, 232, 240, 0.8)',
+              borderTopColor: 'var(--surfaces-gold)',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <span style={{ fontSize: '13px', color: '#0F172A', fontWeight: 600 }}>
+            Authenticating platform session...
+          </span>
+        </div>
+      </DynamicBrandBackground>
     );
   }
 
@@ -108,18 +134,22 @@ export default function DashboardLayout({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg-workspace)' }}>
-      {/* ─── TOP UNIFIED HEADER BAR ─────────────────────────────────── */}
-      <header
-        style={{
-          background: '#FFFFFF',
-          borderBottom: '1px solid var(--border-subtle)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
-        }}
-      >
+    <DynamicBrandBackground variant={dashboardTheme} isFixed={true} contentAlign="stretch">
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
+        {/* ─── TOP UNIFIED HEADER BAR ─────────────────────────────────── */}
+        <header
+          style={{
+            background: dashboardTheme === 'dark' ? 'rgba(255, 255, 255, 0.94)' : 'rgba(255, 255, 255, 0.90)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderBottom: dashboardTheme === 'dark' ? '1px solid rgba(223, 191, 119, 0.35)' : '1px solid var(--border-subtle)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 40,
+            boxShadow: dashboardTheme === 'dark' ? '0 4px 25px rgba(0, 0, 0, 0.25)' : '0 1px 4px rgba(0, 0, 0, 0.04)',
+            transition: 'all 0.25s ease',
+          }}
+        >
         <div
           style={{
             maxWidth: '1700px',
@@ -258,6 +288,60 @@ export default function DashboardLayout({
             {/* Custom action buttons (AI Copilot, Restock, CSV Export) */}
             {actions}
 
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleDashboardTheme}
+              title={dashboardTheme === 'dark' ? 'Switch to Executive Light Theme' : 'Switch to Luxury Dark Theme'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 11px',
+                borderRadius: '8px',
+                border: dashboardTheme === 'dark' ? '1px solid rgba(223, 191, 119, 0.4)' : '1px solid var(--border-subtle)',
+                background: dashboardTheme === 'dark' ? '#0F172A' : '#FFFFFF',
+                color: dashboardTheme === 'dark' ? '#DFBF77' : '#475569',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: dashboardTheme === 'dark' ? '0 2px 8px rgba(0, 0, 0, 0.25)' : 'var(--shadow-xs)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                if (dashboardTheme === 'dark') {
+                  e.currentTarget.style.borderColor = 'var(--surfaces-gold)';
+                  e.currentTarget.style.boxShadow = '0 3px 10px rgba(184, 134, 11, 0.25)';
+                } else {
+                  e.currentTarget.style.borderColor = 'var(--surfaces-border)';
+                  e.currentTarget.style.background = '#FEF9EE';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                if (dashboardTheme === 'dark') {
+                  e.currentTarget.style.borderColor = 'rgba(223, 191, 119, 0.4)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25)';
+                } else {
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.background = '#FFFFFF';
+                }
+              }}
+            >
+              {dashboardTheme === 'dark' ? (
+                <>
+                  <Moon size={13} color="#DFBF77" />
+                  <span style={{ fontSize: '11px', letterSpacing: '0.02em' }}>Dark Theme</span>
+                </>
+              ) : (
+                <>
+                  <Sun size={13} color="#D97706" />
+                  <span style={{ fontSize: '11px', letterSpacing: '0.02em' }}>Light Theme</span>
+                </>
+              )}
+            </button>
+
             {/* User Profile & Sign Out */}
             {user && (
               <>
@@ -367,14 +451,19 @@ export default function DashboardLayout({
             {headerTitle && (
               <h1
                 style={{
-                  fontSize: '26px',
+                  fontSize: '28px',
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
                   marginBottom: '6px',
-                  background: 'linear-gradient(135deg, #0F172A 35%, #8C6D1F 75%, #B8860B 100%)',
+                  background:
+                    dashboardTheme === 'dark'
+                      ? 'linear-gradient(135deg, #FFFFFF 25%, #F8FAFC 55%, #DFBF77 85%, #B8860B 100%)'
+                      : 'linear-gradient(135deg, #0F172A 35%, #8C6D1F 75%, #B8860B 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   display: 'inline-block',
+                  filter: dashboardTheme === 'dark' ? 'drop-shadow(0 2px 10px rgba(0, 0, 0, 0.5))' : 'none',
+                  transition: 'all 0.25s ease',
                 }}
               >
                 {headerTitle}
@@ -384,17 +473,21 @@ export default function DashboardLayout({
               <p
                 style={{
                   fontSize: '13px',
-                  color: '#6B5E4A',
+                  color: dashboardTheme === 'dark' ? 'rgba(255, 255, 255, 0.82)' : '#6B5E4A',
+                  textShadow: dashboardTheme === 'dark' ? '0 1px 4px rgba(0, 0, 0, 0.6)' : 'none',
                   fontWeight: 500,
                   maxWidth: '750px',
                   margin: '0 auto',
                   lineHeight: 1.5,
+                  transition: 'color 0.25s ease',
                 }}
               >
                 {typeof headerSubtitle === 'string' && headerSubtitle.includes('Wallcano & Surfaces Tiles') ? (
                   <>
                     {headerSubtitle.split('Wallcano & Surfaces Tiles')[0]}
-                    <span style={{ fontWeight: 800, color: 'var(--wallcano-dark)' }}>Wallcano</span>
+                    <span style={{ fontWeight: 800, color: dashboardTheme === 'dark' ? '#FFFFFF' : 'var(--wallcano-dark)' }}>
+                      Wallcano
+                    </span>
                     {' & '}
                     <span style={{ fontWeight: 800, color: 'var(--surfaces-gold)' }}>Surfaces Tiles</span>
                     {headerSubtitle.split('Wallcano & Surfaces Tiles')[1]}
@@ -409,6 +502,7 @@ export default function DashboardLayout({
 
         {children}
       </main>
-    </div>
+      </div>
+    </DynamicBrandBackground>
   );
 }
