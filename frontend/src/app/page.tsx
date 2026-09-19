@@ -35,18 +35,15 @@ export default function Home() {
           width: '100%',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
           <img
-            src="/brands/wallcano-logo.png"
-            alt="Wallcano Tiles"
-            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+            src="/brands/wallcano-group-logo.png"
+            alt="Wallcano Group"
+            style={{ height: '72px', width: 'auto', maxWidth: '220px', objectFit: 'contain', marginBottom: '8px' }}
           />
-          <div style={{ width: '1px', height: '28px', background: 'var(--border-subtle)' }} />
-          <img
-            src="/brands/surfaces-logo.png"
-            alt="Surfaces Tiles"
-            style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
-          />
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--surfaces-gold)' }}>
+            Wallcano &bull; Surfaces Tiles
+          </div>
         </div>
 
         <div

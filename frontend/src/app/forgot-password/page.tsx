@@ -68,23 +68,35 @@ export default function ForgotPasswordPage() {
         <div
           style={{
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '16px',
-            marginBottom: '28px',
+            marginBottom: '24px',
           }}
         >
           <img
-            src="/brands/wallcano-logo.png"
-            alt="Wallcano Tiles"
-            style={{ height: '30px', width: 'auto', objectFit: 'contain' }}
+            src="/brands/wallcano-group-logo.png"
+            alt="Wallcano Group"
+            style={{
+              height: '68px',
+              width: 'auto',
+              maxWidth: '210px',
+              objectFit: 'contain',
+              marginBottom: '8px',
+              filter: 'drop-shadow(0 2px 6px rgba(15, 23, 42, 0.1))',
+            }}
           />
-          <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
-          <img
-            src="/brands/surfaces-logo.png"
-            alt="Surfaces Tiles"
-            style={{ height: '20px', width: 'auto', objectFit: 'contain' }}
-          />
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: 'var(--surfaces-gold)',
+            }}
+          >
+            Wallcano &bull; Surfaces Tiles
+          </div>
         </div>
 
         {/* Icon & Title */}
