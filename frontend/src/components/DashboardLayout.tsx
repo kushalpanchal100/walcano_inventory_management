@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Search, RefreshCw, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -112,12 +113,15 @@ export default function DashboardLayout({
       {/* ─── TOP UNIFIED HEADER BAR ─────────────────────────────────── */}
       <header
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-header)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border-subtle)',
           position: 'sticky',
           top: 0,
           zIndex: 40,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+          boxShadow: 'var(--shadow-xs)',
+          transition: 'background 0.25s ease, border-color 0.25s ease',
         }}
       >
         <div
@@ -167,7 +171,7 @@ export default function DashboardLayout({
 
             {/* Combined Brand Label */}
             <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '2px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--wallcano-dark)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', letterSpacing: '0.04em', lineHeight: 1.1 }}>
                 WALLCANO × SURFACES
               </span>
               <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--surfaces-gold)', lineHeight: 1 }}>
@@ -205,19 +209,19 @@ export default function DashboardLayout({
                 padding: '8px 12px 8px 36px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-subtle)',
-                background: '#F8FAFC',
+                background: 'var(--bg-input)',
                 fontSize: '13px',
                 color: 'var(--text-main)',
                 outline: 'none',
                 transition: 'all 0.15s ease',
               }}
               onFocus={(e) => {
-                e.target.style.background = '#FFFFFF';
+                e.target.style.background = 'var(--bg-card)';
                 e.target.style.borderColor = 'var(--surfaces-gold)';
-                e.target.style.boxShadow = '0 0 0 3px rgba(184, 134, 11, 0.12)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(184, 134, 11, 0.15)';
               }}
               onBlur={(e) => {
-                e.target.style.background = '#F8FAFC';
+                e.target.style.background = 'var(--bg-input)';
                 e.target.style.borderColor = 'var(--border-subtle)';
                 e.target.style.boxShadow = 'none';
               }}
@@ -258,6 +262,9 @@ export default function DashboardLayout({
             {/* Custom action buttons (AI Copilot, Restock, CSV Export) */}
             {actions}
 
+            {/* Dark / Light Theme Mode Toggle Button */}
+            <ThemeToggle />
+
             {/* User Profile & Sign Out */}
             {user && (
               <>
@@ -270,7 +277,7 @@ export default function DashboardLayout({
                     gap: '10px',
                     padding: '4px 10px 4px 6px',
                     borderRadius: '20px',
-                    background: '#F8FAFC',
+                    background: 'var(--bg-subtle)',
                     border: '1px solid var(--border-subtle)',
                   }}
                 >
@@ -280,7 +287,7 @@ export default function DashboardLayout({
                       width: '28px',
                       height: '28px',
                       borderRadius: '50%',
-                      background: '#0F172A',
+                      background: 'var(--brand-primary)',
                       color: 'var(--surfaces-gold)',
                       border: '1.5px solid var(--surfaces-border)',
                       display: 'flex',
@@ -301,7 +308,7 @@ export default function DashboardLayout({
                       style={{
                         fontSize: '12px',
                         fontWeight: 700,
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                         maxWidth: '120px',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -317,7 +324,7 @@ export default function DashboardLayout({
                         fontWeight: 800,
                         letterSpacing: '0.04em',
                         textTransform: 'uppercase',
-                        color: user.role === 'admin' ? '#B8860B' : '#64748B',
+                        color: user.role === 'admin' ? 'var(--surfaces-gold)' : 'var(--text-muted)',
                       }}
                     >
                       {user.role === 'admin' ? 'Administrator' : 'Staff'}
@@ -337,17 +344,17 @@ export default function DashboardLayout({
                       borderRadius: '6px',
                       border: 'none',
                       background: 'transparent',
-                      color: '#94A3B8',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                       marginLeft: '2px',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = '#EF4444';
-                      e.currentTarget.style.background = '#FEE2E2';
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = '#94A3B8';
+                      e.currentTarget.style.color = 'var(--text-muted)';
                       e.currentTarget.style.background = 'transparent';
                     }}
                   >
@@ -371,7 +378,7 @@ export default function DashboardLayout({
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
                   marginBottom: '6px',
-                  background: 'linear-gradient(135deg, #0F172A 35%, #8C6D1F 75%, #B8860B 100%)',
+                  background: 'var(--title-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   display: 'inline-block',
@@ -384,7 +391,7 @@ export default function DashboardLayout({
               <p
                 style={{
                   fontSize: '13px',
-                  color: '#6B5E4A',
+                  color: 'var(--text-secondary)',
                   fontWeight: 500,
                   maxWidth: '750px',
                   margin: '0 auto',
