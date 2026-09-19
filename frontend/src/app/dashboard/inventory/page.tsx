@@ -60,6 +60,7 @@ export default function QuickBooksInventoryPage() {
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
+  const [selectedWalcanoForModal, setSelectedWalcanoForModal] = useState<string | null>(null);
   const [mappingItemId, setMappingItemId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{
     text: string;
@@ -1280,9 +1281,14 @@ export default function QuickBooksInventoryPage() {
 
       <AiAutoMapModal
         isOpen={isAutoMapOpen}
-        onClose={() => setIsAutoMapOpen(false)}
+        onClose={() => {
+          setIsAutoMapOpen(false);
+          setSelectedWalcanoForModal(null);
+        }}
         onMappingApplied={() => loadInventory(isDemoMode, true)}
         isDemoMode={isDemoMode}
+        inventoryItems={items}
+        initialSelectedWalcanoName={selectedWalcanoForModal}
       />
 
       <AiRestockModal

@@ -185,33 +185,29 @@ class ProductAutoMapperService:
         existing_names_lower: Set[str],
         forbidden_candidates: Optional[List[str]] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Call Gemini to synthesize a brand-compliant unique Surfaces product name."""
+        """Call Gemini to synthesize a brand-compliant unique Surfaces product name derived SOLELY from the selected product."""
         forbidden_list = list(existing_names)[:60]
         if forbidden_candidates:
             forbidden_list.extend(forbidden_candidates)
 
+        selected_name = specs["walcano_name"]
+
         system_instruction = (
             "You are an elite tile catalog architect and brand naming specialist for Surfaces Tiles "
-            "(a luxury architectural B2C tile brand) and Walcano Tiles (its manufacturing counterpart).\n"
-            "Your task is to generate a UNIQUE, RELEVANT, and BRAND-CONSISTENT luxury product name for "
-            "Surfaces Tiles based strictly on the provided Walcano product's specifications.\n\n"
+            "(a luxury architectural B2C tile brand) and Walcano Tiles (its manufacturing counterpart).\n\n"
+            "CRITICAL CONSTRAINTS & SINGLE SOURCE OF TRUTH:\n"
+            f"The user has selected ONE specific Walcano product as the SINGLE SOURCE OF TRUTH: '{selected_name}'.\n"
+            "1. You must derive the unique Surfaces Tiles product name EXCLUSIVELY and STRICTLY from this selected Walcano product's specifications.\n"
+            "2. Do NOT use other Walcano products, alternative matches, or suggested products.\n"
+            "3. Do NOT provide alternative product suggestions or names based on other Walcano products.\n"
+            "4. Return EXACTLY ONE unique Surfaces Tiles product name based only on the selected Walcano product's details.\n\n"
             "Surfaces Tiles Brand Naming Syntax:\n"
             "[Luxury Collection Name] [Color / Motif Descriptor] [Dimensions cm] [Surface Finish] [Tile Type]\n\n"
-            "Catalog Reference Examples from Authoritative Surfaces Catalog:\n"
-            "- 'Mercure Marble White 60x120 cm Polished Porcelain Tile'\n"
-            "- 'Mandala Dark Grey 30x60 cm Feature Wall Tiles'\n"
-            "- 'Luxe Gold 60x120 cm Matt Porcelain Tiles'\n"
-            "- 'Enduro Walnut 60x90cm (2cm) Outdoor Porcelain Tiles'\n"
-            "- 'Rosetta Pink 60x120 CM Matt Porcelain Tiles'\n"
-            "- 'Classico Grande Endless 80x120 cm Matt Porcelain Tiles'\n"
-            "- 'Mystic Turquoise 80x120 cm High Gloss Porcelain Tiles'\n"
-            "- 'Volcanic Charcoal 60x120 CM Glass Tiles Glossy Grey Wall Tiles for Modern Interiors'\n"
-            "- 'Cotto Sealine Cement 80x120 cm Ghr Matt Porcelain Tile'\n\n"
             "Naming Rules:\n"
-            "1. RELEVANCE: Accurately reflect the product's actual physical dimensions (e.g. 60x120 cm, 60x60 cm, 80x120 cm, 60x90cm (2cm)), "
+            "1. RELEVANCE: Accurately reflect this specific product's physical dimensions (e.g. 60x120 cm, 60x60 cm, 80x120 cm, 60x90cm (2cm)), "
             "surface finish (Polished, Matt, Carving Matt, High Gloss, Satin, Glass, Outdoor Paver), and tile type.\n"
             "2. CONSISTENCY: Use evocative luxury collection names (e.g., Mercure, Aura, Bellagio, Lumina, Celestia, Novara, Enduro, "
-            "Sabbia, Rosetta, Mystic, Zenith, Pune, Nexo, Volcanic, etc.) paired with clear color/motif descriptors.\n"
+            "Sabbia, Rosetta, Mystic, Zenith, Pune, Nexo, Volcanic, etc.) paired with clear color/motif descriptors derived from this product.\n"
             "3. STRICT UNIQUENESS: The generated name MUST BE 100% UNIQUE. It MUST NOT match any existing catalog product name.\n"
             "4. FORBIDDEN NAMES (Do NOT use any of these or near-duplicates):\n"
             f"{json.dumps(forbidden_list[:40], indent=1)}\n\n"
@@ -223,20 +219,21 @@ class ProductAutoMapperService:
             "  \"dimensions\": \"Dimensions in cm\",\n"
             "  \"finish\": \"Finish specification\",\n"
             "  \"tile_type\": \"Tile category specification\",\n"
-            "  \"confidence\": 0.95,\n"
-            "  \"reasoning\": \"1 sentence explaining how the name reflects Walcano dimensions, finish, and series\"\n"
+            "  \"confidence\": 0.98,\n"
+            f"  \"reasoning\": \"Derived exclusively from selected Walcano product '{selected_name}'\"\n"
             "}"
         )
 
         prompt = (
-            f"Walcano Product to Map & Name:\n"
-            f"- Walcano Name: {specs['walcano_name']}\n"
+            f"SELECTED WALCANO PRODUCT (SINGLE SOURCE OF TRUTH):\n"
+            f"- Walcano Product Name: {specs['walcano_name']}\n"
             f"- SKU: {specs['sku']}\n"
             f"- Category: {specs['category']}\n"
             f"- Extracted Dimensions: {specs['dimensions']}\n"
             f"- Extracted Finish: {specs['finish_str']}\n"
             f"- Extracted Tile Type: {specs['tile_type']}\n\n"
-            "Generate the unique Surfaces Tiles product name in JSON format."
+            f"Remember: Base your name ONLY on this specific selected Walcano product. Do not suggest or reference any other product. "
+            f"Generate exactly ONE unique Surfaces Tiles product name in JSON format."
         )
 
         result = await self.provider.generate_structured_json(
@@ -248,6 +245,7 @@ class ProductAutoMapperService:
         if isinstance(result, dict) and result.get("surfaces_name"):
             return result
         return None
+
 
     def _heuristic_unique_name(
         self,
