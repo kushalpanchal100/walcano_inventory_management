@@ -8,8 +8,13 @@ import {
   Edit3,
   CheckCircle2,
   Tag,
+  Sparkles,
 } from 'lucide-react';
-import { saveManualMapping, QuickBooksInventoryItem } from '@/lib/api';
+import {
+  saveManualMapping,
+  autoMapSingleProduct,
+  QuickBooksInventoryItem,
+} from '@/lib/api';
 
 interface ManualMapModalProps {
   isOpen: boolean;
@@ -26,6 +31,7 @@ export default function ManualMapModal({
 }: ManualMapModalProps) {
   const [surfacesName, setSurfacesName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isGeneratingWithAi, setIsGeneratingWithAi] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const walcanoName = (item?.walcano_name || item?.name || '').trim();
@@ -67,6 +73,29 @@ export default function ManualMapModal({
       setErrorMessage(`Error: ${err.message || err}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAutoMapWithGemini = async () => {
+    if (!walcanoName) return;
+    setIsGeneratingWithAi(true);
+    setErrorMessage(null);
+    try {
+      const res = await autoMapSingleProduct({
+        walcano_name: walcanoName,
+        sku: item?.sku,
+        category: item?.category,
+        auto_save: false,
+      });
+      if (res.success && res.surfaces_name) {
+        setSurfacesName(res.surfaces_name);
+      } else {
+        setErrorMessage(res.message || 'Gemini auto-mapping failed.');
+      }
+    } catch (err: any) {
+      setErrorMessage(`Error generating name with Gemini: ${err.message || err}`);
+    } finally {
+      setIsGeneratingWithAi(false);
     }
   };
 
@@ -168,22 +197,47 @@ export default function ManualMapModal({
 
             {/* Input Field: New Surfaces Tiles Product Name */}
             <div style={{ marginBottom: '14px' }}>
-              <label
-                htmlFor="new-surfaces-name"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: '#1E293B',
-                  marginBottom: '6px',
-                }}
-              >
-                <Tag size={13} color="#D97706" />
-                <span>New Surfaces Tiles Product Name</span>
-                <span style={{ color: '#DC2626' }}>*</span>
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                <label
+                  htmlFor="new-surfaces-name"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#1E293B',
+                  }}
+                >
+                  <Tag size={13} color="#D97706" />
+                  <span>New Surfaces Tiles Product Name</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleAutoMapWithGemini}
+                  disabled={isGeneratingWithAi || isSaving}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#7C3AED',
+                    background: '#F5F3FF',
+                    border: '1px solid #DDD6FE',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: isGeneratingWithAi || isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isGeneratingWithAi || isSaving ? 0.7 : 1,
+                  }}
+                  title="Generate a brand-compliant, unique Surfaces product name for this product using Gemini AI"
+                >
+                  <Sparkles size={11} className={isGeneratingWithAi ? 'animate-spin' : ''} />
+                  <span>{isGeneratingWithAi ? 'Generating...' : '✨ Auto-Map with Gemini'}</span>
+                </button>
+              </div>
               <input
                 id="new-surfaces-name"
                 type="text"

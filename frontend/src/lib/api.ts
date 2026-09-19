@@ -221,6 +221,57 @@ export async function sendAiChat(
   };
 }
 
+export interface AutoMapProductRequest {
+  walcano_name?: string;
+  surfaces_name?: string;
+  sku?: string;
+  category?: string;
+  auto_save?: boolean;
+}
+
+export interface AutoMapProductResponse {
+  success: boolean;
+  walcano_name: string;
+  surfaces_name: string;
+  confidence: number;
+  reasoning: string;
+  is_unique: boolean;
+  provider: string;
+  attributes?: {
+    dimensions?: string;
+    finish?: string;
+    tile_type?: string;
+    collection?: string;
+  };
+  saved: boolean;
+  message?: string;
+}
+
+export async function autoMapSingleProduct(
+  params: AutoMapProductRequest
+): Promise<AutoMapProductResponse> {
+  const res = await apiFetch<AutoMapProductResponse>('/ai/auto-map-product', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+
+  if (res.ok && res.data) {
+    return res.data;
+  }
+
+  return {
+    success: false,
+    walcano_name: params.walcano_name || '',
+    surfaces_name: '',
+    confidence: 0,
+    reasoning: res.error || 'Failed to auto-map product',
+    is_unique: false,
+    provider: 'error',
+    saved: false,
+    message: res.error || 'Auto-mapping request failed',
+  };
+}
+
 // ─── AI Copilot, Restock & Semantic Search APIs ──────────────────────────
 
 export interface RestockRecommendation {

@@ -10,6 +10,7 @@ import {
   getQuickBooksAuthUrl,
   disconnectQuickBooks,
   saveManualMapping,
+  autoMapSingleProduct,
   QuickBooksInventoryItem,
   QuickBooksStatus,
 } from '@/lib/api';
@@ -37,6 +38,7 @@ import {
 } from 'lucide-react';
 import { downloadInventoryCsv } from '@/lib/csvExport';
 import AiCopilotDrawer from '@/components/AiCopilotDrawer';
+import AiAutoMapModal from '@/components/AiAutoMapModal';
 import AiRestockModal from '@/components/AiRestockModal';
 import ManualMapModal from '@/components/ManualMapModal';
 
@@ -70,8 +72,20 @@ export default function QuickBooksInventoryPage() {
   // Manual Mapping Modal state (Single Product Focus)
   const [manualMapItem, setManualMapItem] = useState<QuickBooksInventoryItem | null>(null);
 
+  // Single-product AI Auto-Map Modal state
+  const [isAutoMapOpen, setIsAutoMapOpen] = useState<boolean>(false);
+  const [selectedWalcanoForModal, setSelectedWalcanoForModal] = useState<string | null>(null);
+  const [targetItemForModal, setTargetItemForModal] = useState<QuickBooksInventoryItem | null>(null);
+
   const openManualMapModalForItem = (item: QuickBooksInventoryItem) => {
     setManualMapItem(item);
+  };
+
+  const openAutoMapModalForItem = (item: QuickBooksInventoryItem) => {
+    const walcanoName = (item.walcano_name || item.name || '').trim();
+    setSelectedWalcanoForModal(walcanoName);
+    setTargetItemForModal(item);
+    setIsAutoMapOpen(true);
   };
 
   const handleManualMappingSaved = (walcanoName: string, newSurfacesName: string) => {
@@ -1127,6 +1141,30 @@ export default function QuickBooksInventoryPage() {
                                 </div>
                               )}
                             </div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                              <button
+                                type="button"
+                                onClick={() => openAutoMapModalForItem(item)}
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: '3px 8px',
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  color: '#7C3AED',
+                                  borderColor: '#DDD6FE',
+                                  background: '#F5F3FF',
+                                  borderRadius: '5px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Re-run Auto Mapping: generate a fresh unique Surfaces name with Gemini AI"
+                              >
+                                <Sparkles size={10} />
+                                <span>Auto Mapping</span>
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingRight: '28px' }}>
@@ -1136,15 +1174,37 @@ export default function QuickBooksInventoryPage() {
                             </span>
                             <button
                               type="button"
+                              onClick={() => openAutoMapModalForItem(item)}
+                              className="btn btn-secondary"
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#7C3AED',
+                                borderColor: '#DDD6FE',
+                                background: '#F5F3FF',
+                                borderRadius: '5px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                cursor: 'pointer',
+                              }}
+                              title="Auto-map this specific product and generate a unique Surfaces Tiles product name using Gemini AI"
+                            >
+                              <Sparkles size={10} />
+                              <span>Auto-Map (Gemini)</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => openManualMapModalForItem(item)}
                               style={{
                                 background: 'transparent',
                                 border: 'none',
                                 color: 'var(--surfaces-gold, #B45309)',
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 textDecoration: 'underline',
                                 cursor: 'pointer',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 padding: 0,
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1152,7 +1212,7 @@ export default function QuickBooksInventoryPage() {
                               }}
                               title="Map this product manually to Surfaces Tiles"
                             >
-                              Map Manually
+                              Manual Map
                             </button>
                           </div>
                         )}
@@ -1220,6 +1280,20 @@ export default function QuickBooksInventoryPage() {
         onClose={() => setIsCopilotOpen(false)}
         onApplyFilter={handleApplyFilter}
         isDemoMode={isDemoMode}
+      />
+
+      <AiAutoMapModal
+        isOpen={isAutoMapOpen}
+        onClose={() => {
+          setIsAutoMapOpen(false);
+          setSelectedWalcanoForModal(null);
+          setTargetItemForModal(null);
+        }}
+        onMappingApplied={() => loadInventory(isDemoMode, true)}
+        isDemoMode={isDemoMode}
+        inventoryItems={items}
+        initialSelectedWalcanoName={selectedWalcanoForModal}
+        targetItem={targetItemForModal}
       />
 
 
