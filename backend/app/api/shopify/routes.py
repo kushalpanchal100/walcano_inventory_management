@@ -81,10 +81,21 @@ async def connect_shopify(req: ShopifyConnectRequest):
     Save Shopify credentials and verify connection with Shopify GraphQL Admin API.
     """
     try:
+        token = req.access_token.strip()
+        if token.startswith("shpss_"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "The token provided begins with 'shpss_', which is a Shopify API Secret Key, "
+                    "not an Admin API Access Token. Please provide the Admin API Access Token (starts with 'shpat_') "
+                    "from Shopify Admin -> Settings -> Apps and sales channels -> Develop apps -> [Your App] -> API credentials."
+                ),
+            )
+
         # Persist configuration
         shopify_client.save_config({
             "shop_url": req.shop_url,
-            "access_token": req.access_token,
+            "access_token": token,
             "api_version": req.api_version or "2024-04",
             "location_id": req.location_id,
             "location_name": req.location_name or "123 William Street",

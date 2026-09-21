@@ -202,8 +202,16 @@ class ShopifyClient:
 
         # Resolve active access token
         effective_token = access_token
-        if not effective_token:
-            effective_token = await self._resolve_access_token(shop, cfg)
+        if not effective_token or effective_token.startswith("shpss_"):
+            resolved = await self._resolve_access_token(shop, cfg)
+            if resolved and not resolved.startswith("shpss_"):
+                effective_token = resolved
+            elif effective_token and effective_token.startswith("shpss_"):
+                raise ValueError(
+                    "Invalid Access Token: You provided a Shopify API Secret Key ('shpss_...'). "
+                    "Shopify requires the Admin API Access Token ('shpat_...'). "
+                    "You can reveal this in Shopify Admin -> Settings -> Apps and sales channels -> Develop apps -> [Your App] -> API credentials."
+                )
 
         if not effective_token:
             raise ValueError("Shopify Access Token is missing.")

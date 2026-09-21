@@ -145,6 +145,13 @@ export default function ShopifyIntegrationModal({
       setErrorMessage('Please enter your Shopify Admin API Access Token (shpat_...).');
       return;
     }
+    if (accessToken.trim().startsWith('shpss_')) {
+      setErrorMessage(
+        "You entered an API Secret Key ('shpss_...'). Shopify requires the Admin API Access Token ('shpat_...'). " +
+        "In your Shopify Admin, navigate to: Settings -> Apps and sales channels -> Develop apps -> [Your App] -> API credentials -> 'Admin API access token'."
+      );
+      return;
+    }
 
     setIsSaving(true);
     setErrorMessage(null);
@@ -490,13 +497,18 @@ export default function ShopifyIntegrationModal({
                     width: '100%',
                     padding: '9px 12px',
                     borderRadius: '8px',
-                    border: '1px solid var(--border-subtle)',
+                    border: accessToken.startsWith('shpss_') ? '1px solid #F59E0B' : '1px solid var(--border-subtle)',
                     background: 'var(--bg-main)',
                     color: 'var(--text-main)',
                     fontSize: '13px',
                     fontFamily: 'monospace',
                   }}
                 />
+                {accessToken.startsWith('shpss_') && (
+                  <div style={{ fontSize: '11px', color: '#D97706', marginTop: '4px', lineHeight: 1.3 }}>
+                    ⚠️ This is an <strong>API Secret Key</strong> (shpss_...). Please use the <strong>Admin API Access Token</strong> (shpat_...).
+                  </div>
+                )}
               </div>
             </div>
 
