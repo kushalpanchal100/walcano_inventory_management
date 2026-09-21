@@ -62,10 +62,12 @@ application.add_middleware(
 from app.api.auth.routes import router as auth_router  # noqa: E402
 from app.api.quickbooks.routes import router as quickbooks_router  # noqa: E402
 from app.api.ai.routes import router as ai_router  # noqa: E402
+from app.api.shopify.routes import router as shopify_router  # noqa: E402
 
 application.include_router(auth_router, prefix="/api/v1")
 application.include_router(quickbooks_router, prefix="/api/v1")
 application.include_router(ai_router, prefix="/api/v1")
+application.include_router(shopify_router, prefix="/api/v1")
 
 
 # ─── Health Check ─────────────────────────────────────────────────────────

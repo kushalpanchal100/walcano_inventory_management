@@ -40,6 +40,9 @@ class AcceptMappingRequest(BaseModel):
     surfaces_name: str = Field(..., description="Surfaces tile product name")
     confidence: Optional[float] = Field(default=1.0, description="Match confidence score")
     note: Optional[str] = Field(default="AI confirmed mapping", description="Optional note or reference")
+    sku: Optional[str] = Field(default=None, description="Optional product SKU")
+    qty_on_hand: Optional[float] = Field(default=None, description="Optional quantity on hand")
+    category: Optional[str] = Field(default=None, description="Optional product category")
 
 
 class AutoMapProductRequest(BaseModel):
@@ -137,6 +140,7 @@ async def auto_map_product(req: AutoMapProductRequest):
 async def accept_mapping(req: AcceptMappingRequest):
     """
     Accept and persist an AI product mapping. Persists to .custom_mappings.json.
+    Automatically creates/syncs the corresponding product in Shopify if auto-sync is enabled.
     """
     try:
         save_custom_mapping(
@@ -145,11 +149,29 @@ async def accept_mapping(req: AcceptMappingRequest):
             confidence=req.confidence or 1.0,
             note=req.note or "AI confirmed mapping",
         )
+
+        shopify_sync_result = None
+        try:
+            from app.integrations.shopify.client import ShopifyClient
+            shopify_client = ShopifyClient()
+            cfg = shopify_client._load_stored_config()
+            if cfg.get("auto_sync", True):
+                shopify_sync_result = await shopify_client.sync_product({
+                    "sku": req.sku or "",
+                    "walcano_name": req.walcano_name,
+                    "surfaces_name": req.surfaces_name,
+                    "category": req.category or "Tiles & Surfaces",
+                    "qty_on_hand": req.qty_on_hand or 0.0,
+                })
+        except Exception as se:
+            logger.warning(f"Shopify auto-sync skipped on accepted mapping: {se}")
+
         return {
             "success": True,
             "message": f"Mapping confirmed for '{req.walcano_name}' -> '{req.surfaces_name}'",
             "walcano_name": req.walcano_name,
             "surfaces_name": req.surfaces_name,
+            "shopify_sync": shopify_sync_result,
         }
     except Exception as e:
         logger.error(f"Error saving custom mapping: {e}", exc_info=True)

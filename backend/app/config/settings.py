@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     QBO_ACCESS_TOKEN: Optional[str] = None
     QBO_REFRESH_TOKEN: Optional[str] = None
 
+    # Shopify Inventory Management API
+    SHOPIFY_SHOP_URL: Optional[str] = None
+    SHOPIFY_ACCESS_TOKEN: Optional[str] = None
+    SHOPIFY_API_VERSION: str = "2024-04"
+    SHOPIFY_LOCATION_ID: Optional[str] = None
+    SHOPIFY_LOCATION_NAME: Optional[str] = "123 William Street"
+    SHOPIFY_AUTO_SYNC: bool = True
+
     # Google Gemini AI
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-3.6-flash"

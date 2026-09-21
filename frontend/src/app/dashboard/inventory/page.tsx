@@ -42,6 +42,15 @@ import AiAutoMapModal from '@/components/AiAutoMapModal';
 import AiRestockModal from '@/components/AiRestockModal';
 import ManualMapModal from '@/components/ManualMapModal';
 import ShopifyExportModal from '@/components/ShopifyExportModal';
+import ShopifyConnectButton from '@/components/ShopifyConnectButton';
+import ShopifyIntegrationModal, { ShopifyBagIcon } from '@/components/ShopifyIntegrationModal';
+import StockAdjustModal from '@/components/StockAdjustModal';
+import {
+  syncProductToShopify,
+  getSyncedShopifyProducts,
+  getShopifyStatus,
+  ShopifyStatus,
+} from '@/lib/api';
 
 export default function QuickBooksInventoryPage() {
   const [items, setItems] = useState<QuickBooksInventoryItem[]>([]);
@@ -61,6 +70,15 @@ export default function QuickBooksInventoryPage() {
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isRestockOpen, setIsRestockOpen] = useState<boolean>(false);
   const [isShopifyExportOpen, setIsShopifyExportOpen] = useState<boolean>(false);
+
+  // Shopify Integration states
+  const [isShopifyModalOpen, setIsShopifyModalOpen] = useState<boolean>(false);
+  const [shopifyStatus, setShopifyStatus] = useState<ShopifyStatus | null>(null);
+  const [syncedProductSkus, setSyncedProductSkus] = useState<Record<string, any>>({});
+  const [stockAdjustItem, setStockAdjustItem] = useState<QuickBooksInventoryItem | null>(null);
+  const [syncingSku, setSyncingSku] = useState<string | null>(null);
+  const [shopifyRefreshKey, setShopifyRefreshKey] = useState<number>(0);
+
   const [connectionBanner, setConnectionBanner] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
@@ -90,7 +108,11 @@ export default function QuickBooksInventoryPage() {
     setIsAutoMapOpen(true);
   };
 
-  const handleManualMappingSaved = (walcanoName: string, newSurfacesName: string) => {
+  const handleManualMappingSaved = async (walcanoName: string, newSurfacesName: string) => {
+    const targetItem = items.find(
+      (it) => (it.walcano_name || it.name || '').trim().toLowerCase() === walcanoName.toLowerCase()
+    );
+
     setItems((prevItems) =>
       prevItems.map((it) => {
         const itName = (it.walcano_name || it.name || '').trim();
@@ -105,17 +127,104 @@ export default function QuickBooksInventoryPage() {
         return it;
       })
     );
+
+    let shopifySyncSuffix = '';
+    if (targetItem) {
+      try {
+        const syncRes = await syncProductToShopify({
+          sku: targetItem.sku,
+          walcano_name: walcanoName,
+          surfaces_name: newSurfacesName,
+          category: targetItem.category,
+          qty_on_hand: targetItem.qty_on_hand,
+        });
+        if (syncRes.success) {
+          setSyncedProductSkus((prev) => ({
+            ...prev,
+            [targetItem.sku]: {
+              sku: targetItem.sku,
+              surfaces_name: newSurfacesName,
+              action: syncRes.action,
+            },
+          }));
+          shopifySyncSuffix = ' & auto-synced to Shopify!';
+        }
+      } catch (se) {
+        console.warn('Auto Shopify sync notice:', se);
+      }
+    }
+
     setToastMessage({
-      text: `Manual mapping saved! "${walcanoName}" mapped to "${newSurfacesName}"`,
+      text: `Manual mapping saved! "${walcanoName}" mapped to "${newSurfacesName}"${shopifySyncSuffix}`,
       type: 'success',
       surfacesName: newSurfacesName,
     });
     setManualMapItem(null);
   };
 
+  // One-click sync single product directly to Shopify
+  const handleSyncSingleProductToShopify = async (item: QuickBooksInventoryItem) => {
+    setSyncingSku(item.sku);
+    try {
+      const res = await syncProductToShopify({
+        sku: item.sku,
+        name: item.name,
+        walcano_name: item.walcano_name,
+        surfaces_name: item.surfaces_name,
+        category: item.category,
+        qty_on_hand: item.qty_on_hand,
+      });
 
+      if (res.success) {
+        setSyncedProductSkus((prev) => ({
+          ...prev,
+          [item.sku]: {
+            sku: item.sku,
+            surfaces_name: item.surfaces_name,
+            last_synced: res.last_synced,
+            shopify_product_id: res.shopify_product_id,
+            action: res.action,
+          },
+        }));
+        setToastMessage({
+          text: `✓ ${res.action === 'created' ? 'Created and' : ''} Synced "${res.product_name}" to Shopify!`,
+          type: 'success',
+        });
+      } else {
+        setToastMessage({
+          text: `Shopify sync failed: ${res.error || 'Unknown error'}`,
+          type: 'error',
+        });
+      }
+    } catch (err: any) {
+      setToastMessage({
+        text: `Shopify sync error: ${err.message || err}`,
+        type: 'error',
+      });
+    } finally {
+      setSyncingSku(null);
+    }
+  };
 
-
+  // Real-time stock update handler (synced directly to Shopify)
+  const handleStockUpdated = (sku: string, newQty: number) => {
+    setItems((prev) =>
+      prev.map((it) => (it.sku === sku ? { ...it, qty_on_hand: newQty } : it))
+    );
+    setSyncedProductSkus((prev) => ({
+      ...prev,
+      [sku]: {
+        ...(prev[sku] || {}),
+        sku,
+        qty_on_hand: newQty,
+        last_synced: new Date().toISOString(),
+      },
+    }));
+    setToastMessage({
+      text: `✓ Stock updated to ${newQty} and synced to Shopify!`,
+      type: 'success',
+    });
+  };
 
   const handleApplyFilter = useCallback((filters: any) => {
     if (filters.stock) setStockFilter(filters.stock);
@@ -129,9 +238,11 @@ export default function QuickBooksInventoryPage() {
     else setIsRefreshing(true);
 
     try {
-      const [status, inv] = await Promise.all([
+      const [status, inv, shopifyProducts, shopifyStat] = await Promise.all([
         getQuickBooksStatus(),
         getLiveInventory({ demo }),
+        getSyncedShopifyProducts(),
+        getShopifyStatus(),
       ]);
 
       setQboStatus(status);
@@ -140,6 +251,8 @@ export default function QuickBooksInventoryPage() {
       setItems(inv.items || []);
       setCategories(inv.categories || []);
       setLastSynced(inv.last_synced || new Date().toISOString());
+      if (shopifyProducts) setSyncedProductSkus(shopifyProducts);
+      if (shopifyStat) setShopifyStatus(shopifyStat);
     } catch (err) {
       console.error('Failed to load QuickBooks inventory:', err);
     } finally {
@@ -289,6 +402,12 @@ export default function QuickBooksInventoryPage() {
       }
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
+          {/* Shopify Live Integration Button */}
+          <ShopifyConnectButton
+            onOpenModal={() => setIsShopifyModalOpen(true)}
+            statusRefreshKey={shopifyRefreshKey}
+          />
+
           {/* AI Copilot Button */}
           <button
             type="button"
@@ -1016,7 +1135,7 @@ export default function QuickBooksInventoryPage() {
               <thead>
                 <tr>
                   {/* Column 1: Wallcano Product */}
-                  <th style={{ width: '32%' }}>
+                  <th style={{ width: '25%' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <img
                         src="/brands/wallcano-logo.png"
@@ -1028,7 +1147,7 @@ export default function QuickBooksInventoryPage() {
                   </th>
 
                   {/* Column 2: Surfaces Product */}
-                  <th style={{ width: '34%' }}>
+                  <th style={{ width: '28%' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <img
                         src="/brands/surfaces-logo.png"
@@ -1040,19 +1159,30 @@ export default function QuickBooksInventoryPage() {
                   </th>
 
                   {/* Column 3: SKU */}
-                  <th style={{ width: '12%' }}>SKU</th>
+                  <th style={{ width: '11%' }}>SKU</th>
 
                   {/* Column 4: Quantity on Hand */}
-                  <th style={{ width: '12%' }}>Quantity on Hand</th>
+                  <th style={{ width: '14%' }}>Quantity on Hand</th>
 
                   {/* Column 5: Category */}
-                  <th style={{ width: '10%' }}>Category</th>
+                  <th style={{ width: '9%' }}>Category</th>
+
+                  {/* Column 6: Shopify Direct Sync */}
+                  <th style={{ width: '13%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ShopifyBagIcon size={14} />
+                      <span>Shopify Sync</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredItems.map((item, index) => {
                   const isMapped = Boolean(item.is_mapped);
                   const walcanoDisplayName = item.walcano_name || item.name;
+                  const isSynced = Boolean(syncedProductSkus[item.sku]);
+                  const isThisSyncing = syncingSku === item.sku;
+                  const shopifyRecord = syncedProductSkus[item.sku];
 
                   return (
                     <tr key={item.id || item.sku || index}>
@@ -1230,25 +1360,48 @@ export default function QuickBooksInventoryPage() {
                         </span>
                       </td>
 
-                      {/* Column 4: Quantity on Hand */}
+                      {/* Column 4: Quantity on Hand (Interactive / Quick Adjust) */}
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: 800,
+                                color: item.qty_on_hand <= 0 ? 'var(--status-out-text)' : 'var(--text-main)',
+                              }}
+                            >
+                              {item.qty_on_hand.toLocaleString()}
+                            </span>
+                            {item.qty_on_hand <= 0 ? (
+                              <span className="pill pill-outstock" style={{ fontSize: '9px', padding: '1px 5px' }}>Out</span>
+                            ) : item.qty_on_hand <= 10 ? (
+                              <span className="pill pill-lowstock" style={{ fontSize: '9px', padding: '1px 5px' }}>Low</span>
+                            ) : (
+                              <span className="pill pill-instock" style={{ fontSize: '9px', padding: '1px 5px' }}>In</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setStockAdjustItem(item)}
+                            title="Quick adjust on-hand stock and push to Shopify inventory"
                             style={{
-                              fontSize: '14px',
-                              fontWeight: 800,
-                              color: item.qty_on_hand <= 0 ? 'var(--status-out-text)' : 'var(--text-main)',
+                              background: 'var(--bg-subtle)',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: '5px',
+                              padding: '3px 7px',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              fontSize: '10px',
+                              fontWeight: 600,
                             }}
                           >
-                            {item.qty_on_hand.toLocaleString()}
-                          </span>
-                          {item.qty_on_hand <= 0 ? (
-                            <span className="pill pill-outstock">Out of Stock</span>
-                          ) : item.qty_on_hand <= 10 ? (
-                            <span className="pill pill-lowstock">Low Stock</span>
-                          ) : (
-                            <span className="pill pill-instock">In Stock</span>
-                          )}
+                            <Pencil size={10} />
+                            <span>Edit</span>
+                          </button>
                         </div>
                       </td>
 
@@ -1257,6 +1410,77 @@ export default function QuickBooksInventoryPage() {
                         <span className="pill pill-neutral">
                           {item.category || 'General'}
                         </span>
+                      </td>
+
+                      {/* Column 6: Shopify Direct Sync Status & One-Click Button */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isSynced ? (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '999px',
+                                background: 'rgba(22, 163, 74, 0.12)',
+                                color: '#16A34A',
+                                border: '1px solid rgba(22, 163, 74, 0.3)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title={`Synced with Shopify: ${shopifyRecord?.product_title || item.name}`}
+                            >
+                              <Check size={10} strokeWidth={3} />
+                              <span>Synced</span>
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 600,
+                                padding: '2px 6px',
+                                borderRadius: '999px',
+                                background: 'var(--bg-subtle)',
+                                color: 'var(--text-muted)',
+                                border: '1px solid var(--border-subtle)',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Not Synced
+                            </span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleSyncSingleProductToShopify(item)}
+                            disabled={isThisSyncing}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '3px 8px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: '#108A00',
+                              borderColor: 'rgba(16, 138, 0, 0.35)',
+                              background: 'rgba(16, 138, 0, 0.08)',
+                              borderRadius: '5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title="One-click sync: Creates or updates this Surfaces Tiles product in Shopify with on-hand quantity"
+                          >
+                            {isThisSyncing ? (
+                              <RefreshCw size={10} className="spin" />
+                            ) : (
+                              <ShopifyBagIcon size={11} />
+                            )}
+                            <span>{isThisSyncing ? 'Syncing...' : isSynced ? 'Sync' : 'One-Click Sync'}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1304,11 +1528,35 @@ export default function QuickBooksInventoryPage() {
         onMappingSaved={handleManualMappingSaved}
       />
 
-      {/* Shopify Inventory CSV Export Modal */}
+      {/* Shopify Inventory CSV Export Modal (Backup / Manual Bulk Import) */}
       <ShopifyExportModal
         isOpen={isShopifyExportOpen}
         onClose={() => setIsShopifyExportOpen(false)}
         items={filteredItems.length > 0 ? filteredItems : items}
+      />
+
+      {/* Shopify Direct API Integration Modal */}
+      <ShopifyIntegrationModal
+        isOpen={isShopifyModalOpen}
+        onClose={() => {
+          setIsShopifyModalOpen(false);
+          setShopifyRefreshKey((k) => k + 1);
+        }}
+        inventoryItems={items}
+        onOpenCsvExport={() => setIsShopifyExportOpen(true)}
+        onSyncComplete={() => {
+          loadInventory(isDemoMode, true);
+          setShopifyRefreshKey((k) => k + 1);
+        }}
+      />
+
+      {/* Quick Stock Adjust & Real-Time Shopify Sync Modal */}
+      <StockAdjustModal
+        isOpen={Boolean(stockAdjustItem)}
+        onClose={() => setStockAdjustItem(null)}
+        item={stockAdjustItem}
+        onStockUpdated={handleStockUpdated}
+        shopifyLocationName={shopifyStatus?.location_name || '123 William Street'}
       />
     </DashboardLayout>
   );

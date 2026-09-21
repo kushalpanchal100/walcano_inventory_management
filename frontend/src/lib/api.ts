@@ -115,6 +115,12 @@ export interface QuickBooksInventoryItem {
   available?: number;
   on_hand_current?: number;
   on_hand_new?: number;
+
+  // Shopify Live API Sync status
+  shopify_synced?: boolean;
+  shopify_product_id?: string;
+  shopify_last_synced?: string;
+  shopify_location?: string;
 }
 
 export interface QuickBooksInventoryResponse {
@@ -514,5 +520,206 @@ export async function authResetPassword(
     body: JSON.stringify({ email, otp_code: otpCode, new_password: newPassword }),
   });
   return { ok: res.ok, message: res.data?.message, error: res.error };
+}
+
+// ─── Shopify Live Inventory API Client ─────────────────────────────────────────
+
+export interface ShopifyStatus {
+  connected: boolean;
+  is_mock?: boolean;
+  shop_url?: string;
+  shop_name?: string | null;
+  currency?: string;
+  api_version?: string;
+  location_id?: string | null;
+  location_name?: string;
+  auto_sync?: boolean;
+  synced_products_count?: number;
+  last_sync_timestamp?: string | null;
+  message?: string;
+  error?: string;
+}
+
+export interface ShopifyLocation {
+  id: string;
+  name: string;
+  is_active: boolean;
+  address?: string;
+}
+
+export interface ShopifySyncResult {
+  success: boolean;
+  action?: 'created' | 'updated' | string;
+  sku?: string;
+  product_name?: string;
+  quantity?: number;
+  location_name?: string;
+  shopify_product_id?: string;
+  last_synced?: string;
+  mode?: string;
+  message?: string;
+  error?: string;
+}
+
+export interface ShopifyBulkSyncResult {
+  success: boolean;
+  total_items: number;
+  created: number;
+  updated: number;
+  failed: number;
+  results?: ShopifySyncResult[];
+  synced_at?: string;
+  message?: string;
+}
+
+export async function getShopifyStatus(): Promise<ShopifyStatus> {
+  const res = await apiFetch<ShopifyStatus>('/shopify/status');
+  if (res.ok && res.data) {
+    return res.data;
+  }
+  return {
+    connected: false,
+    is_mock: true,
+    location_name: '123 William Street',
+    error: res.error,
+  };
+}
+
+export async function connectShopify(payload: {
+  shop_url: string;
+  access_token: string;
+  api_version?: string;
+  location_id?: string;
+  location_name?: string;
+  auto_sync?: boolean;
+}): Promise<{ ok: boolean; status?: ShopifyStatus; error?: string }> {
+  const res = await apiFetch<{ success: boolean; status: ShopifyStatus; message: string }>('/shopify/connect', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return {
+    ok: res.ok && Boolean(res.data?.success),
+    status: res.data?.status,
+    error: res.error || (res.data && !res.data.success ? res.data.message : undefined),
+  };
+}
+
+export async function disconnectShopify(): Promise<{ ok: boolean; message?: string }> {
+  const res = await apiFetch<{ success: boolean; message: string }>('/shopify/disconnect', {
+    method: 'POST',
+  });
+  return { ok: res.ok, message: res.data?.message };
+}
+
+export async function getShopifyLocations(): Promise<ShopifyLocation[]> {
+  const res = await apiFetch<{ success: boolean; locations: ShopifyLocation[] }>('/shopify/locations');
+  if (res.ok && res.data?.locations) {
+    return res.data.locations;
+  }
+  return [
+    {
+      id: 'gid://shopify/Location/9082341029',
+      name: '123 William Street',
+      is_active: true,
+      address: '123 William Street, New York, USA',
+    },
+    {
+      id: 'gid://shopify/Location/9082341030',
+      name: 'Central Distribution Warehouse',
+      is_active: true,
+      address: '45 Industrial Parkway, Newark, USA',
+    },
+  ];
+}
+
+export async function setShopifyLocation(
+  location_id: string,
+  location_name: string
+): Promise<{ ok: boolean; location_name?: string; error?: string }> {
+  const res = await apiFetch<{ success: boolean; location_name: string }>('/shopify/set-location', {
+    method: 'POST',
+    body: JSON.stringify({ location_id, location_name }),
+  });
+  return { ok: res.ok, location_name: res.data?.location_name, error: res.error };
+}
+
+export async function syncProductToShopify(item: {
+  sku: string;
+  name?: string;
+  walcano_name?: string;
+  surfaces_name?: string | null;
+  category?: string;
+  qty_on_hand?: number;
+  location_id?: string;
+  location_name?: string;
+}): Promise<ShopifySyncResult> {
+  const res = await apiFetch<ShopifySyncResult>('/shopify/sync-product', {
+    method: 'POST',
+    body: JSON.stringify(item),
+  });
+  if (res.ok && res.data) {
+    return res.data;
+  }
+  return {
+    success: false,
+    sku: item.sku,
+    error: res.error || 'Failed to sync product to Shopify',
+  };
+}
+
+export async function syncAllProductsToShopify(options?: {
+  items?: QuickBooksInventoryItem[];
+  location_id?: string;
+  location_name?: string;
+  demo?: boolean;
+}): Promise<ShopifyBulkSyncResult> {
+  const res = await apiFetch<ShopifyBulkSyncResult>('/shopify/sync-all', {
+    method: 'POST',
+    body: JSON.stringify(options || {}),
+  });
+  if (res.ok && res.data) {
+    return res.data;
+  }
+  return {
+    success: false,
+    total_items: 0,
+    created: 0,
+    updated: 0,
+    failed: 0,
+    message: res.error || 'Bulk sync failed',
+  };
+}
+
+export async function updateInventoryStock(
+  sku: string,
+  new_quantity: number,
+  item_details?: Partial<QuickBooksInventoryItem>
+): Promise<{ success: boolean; new_quantity?: number; shopify_synced?: boolean; error?: string; message?: string }> {
+  const res = await apiFetch<{ success: boolean; new_quantity: number; shopify_synced: boolean; message: string }>(
+    '/shopify/update-stock',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        sku,
+        new_quantity,
+        item_details,
+      }),
+    }
+  );
+  if (res.ok && res.data) {
+    return res.data;
+  }
+  return {
+    success: false,
+    error: res.error || 'Failed to update stock',
+  };
+}
+
+export async function getSyncedShopifyProducts(): Promise<Record<string, any>> {
+  const res = await apiFetch<{ success: boolean; products: Record<string, any> }>('/shopify/products');
+  if (res.ok && res.data?.products) {
+    return res.data.products;
+  }
+  return {};
 }
 
