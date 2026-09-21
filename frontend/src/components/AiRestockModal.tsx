@@ -79,14 +79,14 @@ export default function AiRestockModal({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                   AI Inventory Health & Restock Insights
                 </h3>
                 <span className="pill pill-ai">
                   {data?.provider === 'gemini' ? 'AI Live Engine' : 'Heuristic Forecasting'}
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Proactive reorder recommendations and stockout risk tiers
               </p>
             </div>
@@ -194,7 +194,7 @@ export default function AiRestockModal({
                   margin: '0 auto 16px',
                 }}
               />
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
                 Calculating restock forecasting...
               </p>
             </div>
@@ -205,8 +205,8 @@ export default function AiRestockModal({
                   width: '48px',
                   height: '48px',
                   borderRadius: '50%',
-                  background: '#DCFCE7',
-                  color: '#16A34A',
+                  background: 'var(--status-instock-bg, #DCFCE7)',
+                  color: 'var(--status-instock-text, #16A34A)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -215,16 +215,16 @@ export default function AiRestockModal({
               >
                 <CheckCircle size={24} />
               </div>
-              <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
                 Inventory Levels Are Optimal!
               </h4>
-              <p style={{ fontSize: '13px', color: '#64748B', maxWidth: '420px', margin: '0 auto' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
                 All tiles in your QuickBooks inventory meet the minimum recommended buffer quantities.
               </p>
             </div>
           ) : (
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
                 Replenishment Recommendations ({recommendations.length})
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -236,9 +236,9 @@ export default function AiRestockModal({
                       style={{
                         padding: '14px 16px',
                         borderRadius: '10px',
-                        background: '#FFFFFF',
+                        background: 'var(--bg-card)',
                         border: '1px solid',
-                        borderColor: isCritical ? '#FECDD3' : '#FDE68A',
+                        borderColor: isCritical ? 'rgba(244, 63, 94, 0.35)' : 'rgba(245, 158, 11, 0.35)',
                         boxShadow: 'var(--shadow-xs)',
                         display: 'flex',
                         alignItems: 'center',
@@ -255,26 +255,26 @@ export default function AiRestockModal({
                           >
                             {rec.priority.toUpperCase()} RISK
                           </span>
-                          <span style={{ fontSize: '11px', color: '#64748B', fontFamily: 'monospace' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                             SKU: {rec.sku || 'N/A'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
                           {rec.name}
                         </div>
                         {rec.surfaces_name && (
-                          <div style={{ fontSize: '12px', color: '#B45309', marginTop: '2px' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--surfaces-gold-light)', marginTop: '2px' }}>
                             Surfaces: {rec.surfaces_name}
                           </div>
                         )}
-                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                           {rec.risk_reason}
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', textAlign: 'right' }}>
                         <div>
-                          <div style={{ fontSize: '11px', color: '#64748B' }}>Current Stock</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Current Stock</div>
                           <div style={{ fontSize: '15px', fontWeight: 800, color: rec.current_qty <= 0 ? '#BE123C' : '#D97706' }}>
                             {rec.current_qty} units
                           </div>
@@ -283,15 +283,15 @@ export default function AiRestockModal({
                         <div
                           style={{
                             padding: '8px 14px',
-                            background: '#F1F5F9',
+                            background: 'var(--bg-subtle)',
                             borderRadius: '8px',
-                            border: '1px solid #E2E8F0',
+                            border: '1px solid var(--border-subtle)',
                           }}
                         >
-                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                             Suggested Reorder
                           </div>
-                          <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
+                          <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
                             +{rec.suggested_reorder_qty} units
                           </div>
                         </div>

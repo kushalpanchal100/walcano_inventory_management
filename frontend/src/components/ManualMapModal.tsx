@@ -129,10 +129,10 @@ export default function ManualMapModal({
               <Edit3 size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                 Manual Product Mapping
               </h3>
-              <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
                 Map selected Wallcano product directly to Surfaces Tiles catalog
               </p>
             </div>
@@ -156,8 +156,8 @@ export default function ManualMapModal({
               style={{
                 padding: '12px 14px',
                 borderRadius: '8px',
-                background: '#F8FAFC',
-                border: '1.5px solid #E2E8F0',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-subtle)',
                 marginBottom: '16px',
               }}
             >
@@ -166,20 +166,20 @@ export default function ManualMapModal({
                   SELECTED WALLCANO PRODUCT
                 </span>
                 {item.id && (
-                  <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
                     QBO ID: {item.id}
                   </span>
                 )}
               </div>
 
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', lineHeight: '1.3', marginBottom: '6px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', lineHeight: '1.3', marginBottom: '6px' }}>
                 {walcanoName}
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: '#64748B', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
                 {item.sku && (
                   <span>
-                    <strong>SKU:</strong> <code style={{ color: '#0F172A', background: '#E2E8F0', padding: '1px 4px', borderRadius: '3px' }}>{item.sku}</code>
+                    <strong>SKU:</strong> <code style={{ color: 'var(--surfaces-gold-light)', background: 'var(--bg-card)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--border-subtle)' }}>{item.sku}</code>
                   </span>
                 )}
                 {item.category && (
@@ -251,15 +251,15 @@ export default function ManualMapModal({
                   padding: '10px 12px',
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: '#0F172A',
-                  background: '#FFFFFF',
-                  border: '1.5px solid #CBD5E1',
+                  color: 'var(--text-main)',
+                  background: 'var(--bg-input)',
+                  border: '1.5px solid var(--border-medium)',
                   borderRadius: '8px',
                   outline: 'none',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                 }}
               />
-              <p style={{ fontSize: '11px', color: '#64748B', margin: '6px 0 0' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '6px 0 0' }}>
                 This name applies strictly to <strong>"{walcanoName}"</strong> and will be saved directly into the Surfaces catalog.
               </p>
             </div>

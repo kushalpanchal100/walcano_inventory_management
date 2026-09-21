@@ -131,7 +131,7 @@ export default function AiCopilotDrawer({
     return lines.map((line, idx) => {
       if (line.startsWith('### ')) {
         return (
-          <h4 key={idx} style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', marginTop: '6px', marginBottom: '3px' }}>
+          <h4 key={idx} style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginTop: '6px', marginBottom: '3px' }}>
             {line.replace('### ', '')}
           </h4>
         );
@@ -141,7 +141,7 @@ export default function AiCopilotDrawer({
         return (
           <li
             key={idx}
-            style={{ marginLeft: '16px', fontSize: '12px', color: '#334155', marginBottom: '3px', lineHeight: '1.4' }}
+            style={{ marginLeft: '16px', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '3px', lineHeight: '1.4' }}
             dangerouslySetInnerHTML={{ __html: formatInline(content) }}
           />
         );
@@ -152,7 +152,7 @@ export default function AiCopilotDrawer({
       return (
         <p
           key={idx}
-          style={{ fontSize: '12px', color: '#1E293B', marginBottom: '4px', lineHeight: '1.45' }}
+          style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', lineHeight: '1.45' }}
           dangerouslySetInnerHTML={{ __html: formatInline(line) }}
         />
       );
@@ -161,8 +161,8 @@ export default function AiCopilotDrawer({
 
   const formatInline = (str: string) => {
     return str
-      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0F172A; font-weight: 700;">$1</strong>')
-      .replace(/`([^`]+)`/g, '<code style="font-family: monospace; font-size: 11px; background: #F1F5F9; padding: 2px 4px; border-radius: 4px; color: #4F46E5;">$1</code>');
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text-main); font-weight: 700;">$1</strong>')
+      .replace(/`([^`]+)`/g, '<code style="font-family: var(--font-mono, monospace); font-size: 11px; background: var(--bg-subtle); padding: 2px 5px; border-radius: 4px; color: var(--surfaces-gold-light); border: 1px solid var(--border-subtle);">$1</code>');
   };
 
   const quickPrompts = [
@@ -202,11 +202,11 @@ export default function AiCopilotDrawer({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
                   Wallcano AI Copilot
                 </span>
               </div>
-              <p style={{ fontSize: '11px', color: '#64748B', marginTop: '1px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
                 Real-time inventory assistant
               </p>
             </div>
@@ -239,16 +239,16 @@ export default function AiCopilotDrawer({
           <div
             style={{
               padding: '8px 16px',
-              background: '#FFFBEB',
-              borderBottom: '1px solid #FCD34D',
+              background: 'var(--status-low-bg, #FFFBEB)',
+              borderBottom: '1px solid var(--status-low-border, #FCD34D)',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '11px',
-              color: '#92400E',
+              color: 'var(--status-low-text, #92400E)',
             }}
           >
-            <Info size={13} color="#D97706" style={{ flexShrink: 0 }} />
+            <Info size={13} color="var(--status-low-text, #D97706)" style={{ flexShrink: 0 }} />
             <span>High-accuracy local reasoning active. Connect AI API key in backend for multi-turn models.</span>
           </div>
         )}
@@ -298,7 +298,7 @@ export default function AiCopilotDrawer({
                   <p style={{ margin: 0 }}>{msg.text}</p>
                 )}
               </div>
-              <span style={{ fontSize: '10px', color: '#94A3B8', marginTop: '3px', padding: '0 4px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px', padding: '0 4px' }}>
                 {msg.timestamp}
               </span>
             </div>
@@ -343,7 +343,7 @@ export default function AiCopilotDrawer({
                   animation: 'bounce 1s infinite 0.4s',
                 }}
               />
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
                 Analyzing live stock...
               </span>
             </div>
@@ -355,7 +355,7 @@ export default function AiCopilotDrawer({
         <div
           style={{
             padding: '10px 16px',
-            background: '#FFFFFF',
+            background: 'var(--bg-card)',
             borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
@@ -375,21 +375,21 @@ export default function AiCopilotDrawer({
                 fontWeight: 600,
                 borderRadius: '16px',
                 border: '1px solid var(--border-subtle)',
-                background: '#F8FAFC',
-                color: '#334155',
+                background: 'var(--bg-subtle)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#EEF2FF';
-                e.currentTarget.style.borderColor = '#C7D2FE';
-                e.currentTarget.style.color = '#4F46E5';
+                e.currentTarget.style.background = 'var(--bg-card-hover)';
+                e.currentTarget.style.borderColor = 'var(--surfaces-gold)';
+                e.currentTarget.style.color = 'var(--surfaces-gold-light)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#F8FAFC';
+                e.currentTarget.style.background = 'var(--bg-subtle)';
                 e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                e.currentTarget.style.color = '#334155';
+                e.currentTarget.style.color = 'var(--text-secondary)';
               }}
             >
               {p.label}
@@ -418,16 +418,16 @@ export default function AiCopilotDrawer({
                 fontSize: '12px',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
-                background: '#F8FAFC',
+                background: 'var(--bg-input)',
                 outline: 'none',
-                color: '#0F172A',
+                color: 'var(--text-main)',
               }}
               onFocus={(e) => {
-                e.target.style.background = '#FFFFFF';
-                e.target.style.borderColor = '#4F46E5';
+                e.target.style.background = 'var(--bg-card)';
+                e.target.style.borderColor = 'var(--surfaces-gold)';
               }}
               onBlur={(e) => {
-                e.target.style.background = '#F8FAFC';
+                e.target.style.background = 'var(--bg-input)';
                 e.target.style.borderColor = 'var(--border-subtle)';
               }}
             />
