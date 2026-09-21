@@ -338,7 +338,7 @@ export default function QuickBooksInventoryPage() {
       }
 
       // Stock status
-      if (stockFilter === 'in_stock' && item.qty_on_hand <= 10) return false;
+      if (stockFilter === 'in_stock' && item.qty_on_hand <= 0) return false;
       if (stockFilter === 'low_stock' && (item.qty_on_hand <= 0 || item.qty_on_hand > 10)) return false;
       if (stockFilter === 'out_of_stock' && item.qty_on_hand > 0) return false;
 
@@ -362,7 +362,7 @@ export default function QuickBooksInventoryPage() {
   const metrics = useMemo(() => {
     const totalProducts = items.length;
     const totalQty = items.reduce((sum, item) => sum + (item.qty_on_hand || 0), 0);
-    const inStock = items.filter((i) => i.qty_on_hand > 10).length;
+    const inStock = items.filter((i) => i.qty_on_hand > 0).length;
     const lowStock = items.filter((i) => i.qty_on_hand > 0 && i.qty_on_hand <= 10).length;
     const outOfStock = items.filter((i) => i.qty_on_hand <= 0).length;
     const mappedCount = items.filter((i) => i.is_mapped).length;
@@ -813,14 +813,14 @@ export default function QuickBooksInventoryPage() {
         className="stat-card-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+          gap: '14px',
+          marginBottom: '20px',
         }}
       >
         {/* Metric 1: Total Products */}
         <div
-          className="stat-card stat-card-ribbon-total"
+          className={`stat-card stat-card-ribbon-total ${stockFilter === 'all' && mappingFilter === 'all' ? 'active' : ''}`}
           onClick={() => {
             setMappingFilter('all');
             setStockFilter('all');
@@ -843,8 +843,11 @@ export default function QuickBooksInventoryPage() {
         {/* Metric 2: Surfaces Mapped */}
         <div
           className="stat-card stat-card-ribbon-surfaces"
-          onClick={() => setMappingFilter('mapped')}
-          style={{ cursor: 'pointer' }}
+          onClick={() => setMappingFilter(mappingFilter === 'mapped' ? 'all' : 'mapped')}
+          style={{
+            cursor: 'pointer',
+            border: mappingFilter === 'mapped' ? '1.5px solid var(--surfaces-gold)' : undefined,
+          }}
           title="Click to filter Surfaces mapped items"
         >
           <div className="stat-title" style={{ color: '#B45309' }}>
@@ -862,8 +865,11 @@ export default function QuickBooksInventoryPage() {
         {/* Metric 3: Wallcano Exclusive / Unmapped */}
         <div
           className="stat-card stat-card-ribbon-wallcano"
-          onClick={() => setMappingFilter('unmapped')}
-          style={{ cursor: 'pointer' }}
+          onClick={() => setMappingFilter(mappingFilter === 'unmapped' ? 'all' : 'unmapped')}
+          style={{
+            cursor: 'pointer',
+            border: mappingFilter === 'unmapped' ? '1.5px solid var(--wallcano-slate)' : undefined,
+          }}
           title="Click to filter Wallcano unmapped items"
         >
           <div className="stat-title" style={{ color: 'var(--wallcano-slate)' }}>
@@ -892,22 +898,49 @@ export default function QuickBooksInventoryPage() {
           </div>
         </div>
 
-        {/* Metric 5: In Stock Ratio */}
+        {/* Metric 5: In Stock Card */}
         <div
           className="stat-card stat-card-ribbon-instock"
-          onClick={() => setStockFilter('in_stock')}
-          style={{ cursor: 'pointer' }}
-          title="Click to view in-stock items"
+          onClick={() => setStockFilter(stockFilter === 'in_stock' ? 'all' : 'in_stock')}
+          style={{
+            cursor: 'pointer',
+            border: stockFilter === 'in_stock' ? '2px solid #16A34A' : undefined,
+            background: stockFilter === 'in_stock' ? 'rgba(22, 163, 74, 0.08)' : undefined,
+          }}
+          title={stockFilter === 'in_stock' ? 'Currently filtering: In Stock (click to clear)' : 'Click to filter by In Stock'}
         >
           <div className="stat-title" style={{ color: '#16A34A' }}>
             <CheckCircle size={14} color="#16A34A" />
-            <span>In Stock Items</span>
+            <span>In Stock</span>
           </div>
           <div className="stat-value" style={{ color: '#15803D' }}>
             {isLoading ? '-' : metrics.inStock}
           </div>
-          <div className="stat-desc">
-            {metrics.outOfStock} out of stock · {metrics.lowStock} low
+          <div className="stat-desc" style={{ color: stockFilter === 'in_stock' ? '#15803D' : undefined }}>
+            {stockFilter === 'in_stock' ? 'Active filter · Click to clear' : 'Available units on hand'}
+          </div>
+        </div>
+
+        {/* Metric 6: Out of Stock Card */}
+        <div
+          className="stat-card stat-card-ribbon-outstock"
+          onClick={() => setStockFilter(stockFilter === 'out_of_stock' ? 'all' : 'out_of_stock')}
+          style={{
+            cursor: 'pointer',
+            border: stockFilter === 'out_of_stock' ? '2px solid #DC2626' : undefined,
+            background: stockFilter === 'out_of_stock' ? 'rgba(220, 38, 38, 0.08)' : undefined,
+          }}
+          title={stockFilter === 'out_of_stock' ? 'Currently filtering: Out of Stock (click to clear)' : 'Click to filter by Out of Stock'}
+        >
+          <div className="stat-title" style={{ color: '#DC2626' }}>
+            <AlertCircle size={14} color="#DC2626" />
+            <span>Out of Stock</span>
+          </div>
+          <div className="stat-value" style={{ color: '#BE123C' }}>
+            {isLoading ? '-' : metrics.outOfStock}
+          </div>
+          <div className="stat-desc" style={{ color: stockFilter === 'out_of_stock' ? '#BE123C' : undefined }}>
+            {stockFilter === 'out_of_stock' ? 'Active filter · Click to clear' : 'Items with zero inventory'}
           </div>
         </div>
       </div>
@@ -988,7 +1021,7 @@ export default function QuickBooksInventoryPage() {
           </div>
 
           {/* Stock Filter Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value as any)}
@@ -998,17 +1031,37 @@ export default function QuickBooksInventoryPage() {
                 fontWeight: 600,
                 color: 'var(--text-main)',
                 background: 'var(--bg-input)',
-                border: '1px solid var(--border-subtle)',
+                border: stockFilter !== 'all' ? '1px solid var(--surfaces-gold)' : '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 outline: 'none',
                 cursor: 'pointer',
               }}
             >
               <option value="all">All Stock Statuses</option>
-              <option value="in_stock">In Stock (&gt;10 units)</option>
+              <option value="in_stock">In Stock ({metrics.inStock})</option>
+              <option value="out_of_stock">Out of Stock ({metrics.outOfStock})</option>
               <option value="low_stock">Low Stock (1-10 units)</option>
-              <option value="out_of_stock">Out of Stock (0 units)</option>
             </select>
+
+            {stockFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setStockFilter('all')}
+                style={{
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px',
+                  padding: '5px 9px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+                title="Clear stock status filter"
+              >
+                Clear
+              </button>
+            )}
 
             {lastSynced && (
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1071,6 +1124,21 @@ export default function QuickBooksInventoryPage() {
             <span className="pill pill-neutral">
               {filteredItems.length} {filteredItems.length === 1 ? 'record' : 'records'}
             </span>
+            {stockFilter === 'in_stock' && (
+              <span className="pill pill-instock" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                Filtered: In Stock
+              </span>
+            )}
+            {stockFilter === 'out_of_stock' && (
+              <span className="pill pill-outstock" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                Filtered: Out of Stock
+              </span>
+            )}
+            {stockFilter === 'low_stock' && (
+              <span className="pill pill-lowstock" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                Filtered: Low Stock
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1159,16 +1227,16 @@ export default function QuickBooksInventoryPage() {
                   </th>
 
                   {/* Column 3: SKU */}
-                  <th style={{ width: '11%' }}>SKU</th>
+                  <th style={{ width: '10%' }}>SKU</th>
 
                   {/* Column 4: Quantity on Hand */}
-                  <th style={{ width: '14%' }}>Quantity on Hand</th>
+                  <th style={{ width: '18%' }}>Quantity on Hand</th>
 
                   {/* Column 5: Category */}
-                  <th style={{ width: '9%' }}>Category</th>
+                  <th style={{ width: '10%' }}>Category</th>
 
                   {/* Column 6: Shopify Direct Sync */}
-                  <th style={{ width: '13%' }}>
+                  <th style={{ width: '14%' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <ShopifyBagIcon size={14} />
                       <span>Shopify Sync</span>
@@ -1208,13 +1276,12 @@ export default function QuickBooksInventoryPage() {
                         </div>
                       </td>
 
-                      {/* Column 2: Surfaces Tiles Product Name */}
-                      <td style={{ position: 'relative', verticalAlign: 'middle' }}>
-                        {/* Manual Mapping icon button in the top-right corner */}
+                      {/* Column 2: Surfaces Tiles Mapping & Specification */}
+                      <td style={{ position: 'relative' }}>
+                        {/* Pencil Edit Icon for Direct Manual Mapping Modal */}
                         <button
                           type="button"
                           onClick={() => openManualMapModalForItem(item)}
-                          className="manual-mapping-icon-btn"
                           style={{
                             position: 'absolute',
                             top: '6px',
@@ -1282,19 +1349,15 @@ export default function QuickBooksInventoryPage() {
                                   gap: '4px',
                                   cursor: 'pointer',
                                 }}
-                                title="Re-run Auto Mapping: generate a fresh unique Surfaces name with AI"
+                                title="Auto-map this specific product and generate a unique Surfaces Tiles product name using AI"
                               >
                                 <Sparkles size={10} />
-                                <span>Auto Mapping</span>
+                                <span>Remap</span>
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingRight: '28px' }}>
-                            <span className="pill pill-neutral" style={{ fontSize: '10px' }}>
-                              <Unlink size={10} color="#94A3B8" />
-                              Unmapped
-                            </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <button
                               type="button"
                               onClick={() => openAutoMapModalForItem(item)}
@@ -1362,8 +1425,8 @@ export default function QuickBooksInventoryPage() {
 
                       {/* Column 4: Quantity on Hand (Interactive / Quick Adjust) */}
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
                             <span
                               style={{
                                 fontSize: '14px',
@@ -1374,11 +1437,29 @@ export default function QuickBooksInventoryPage() {
                               {item.qty_on_hand.toLocaleString()}
                             </span>
                             {item.qty_on_hand <= 0 ? (
-                              <span className="pill pill-outstock" style={{ fontSize: '9px', padding: '1px 5px' }}>Out</span>
-                            ) : item.qty_on_hand <= 10 ? (
-                              <span className="pill pill-lowstock" style={{ fontSize: '9px', padding: '1px 5px' }}>Low</span>
+                              <span
+                                className="pill pill-outstock"
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 8px',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                Out of Stock
+                              </span>
                             ) : (
-                              <span className="pill pill-instock" style={{ fontSize: '9px', padding: '1px 5px' }}>In</span>
+                              <span
+                                className="pill pill-instock"
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 8px',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                In Stock
+                              </span>
                             )}
                           </div>
                           <button
@@ -1397,6 +1478,7 @@ export default function QuickBooksInventoryPage() {
                               gap: '3px',
                               fontSize: '10px',
                               fontWeight: 600,
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             <Pencil size={10} />

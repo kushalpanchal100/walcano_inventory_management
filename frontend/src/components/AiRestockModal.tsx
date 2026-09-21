@@ -153,7 +153,7 @@ export default function AiRestockModal({
             }}
           >
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#E11D48', textTransform: 'uppercase' }}>
-              Stockout (0 Qty)
+              Out of Stock (0 Qty)
             </div>
             <div style={{ fontSize: '24px', fontWeight: 800, color: '#BE123C', marginTop: '4px' }}>
               {data?.critical_count ?? 0} items
@@ -278,6 +278,15 @@ export default function AiRestockModal({
                           <div style={{ fontSize: '15px', fontWeight: 800, color: rec.current_qty <= 0 ? '#BE123C' : '#D97706' }}>
                             {rec.current_qty} units
                           </div>
+                          {rec.current_qty <= 0 ? (
+                            <span className="pill pill-outstock" style={{ fontSize: '9px', padding: '1px 6px', marginTop: '3px', display: 'inline-block' }}>
+                              Out of Stock
+                            </span>
+                          ) : (
+                            <span className="pill pill-instock" style={{ fontSize: '9px', padding: '1px 6px', marginTop: '3px', display: 'inline-block' }}>
+                              In Stock
+                            </span>
+                          )}
                         </div>
 
                         <div

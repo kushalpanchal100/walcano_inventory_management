@@ -188,8 +188,17 @@ export default function ManualMapModal({
                   </span>
                 )}
                 {item.qty_on_hand !== undefined && (
-                  <span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <strong>Stock:</strong> {item.qty_on_hand.toLocaleString()}
+                    {item.qty_on_hand <= 0 ? (
+                      <span className="pill pill-outstock" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                        Out of Stock
+                      </span>
+                    ) : (
+                      <span className="pill pill-instock" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                        In Stock
+                      </span>
+                    )}
                   </span>
                 )}
               </div>

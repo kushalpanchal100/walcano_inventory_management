@@ -22,7 +22,7 @@ class ShopifyConnectRequest(BaseModel):
     access_token: str = Field(..., description="Shopify Admin API Access Token (shpat_...)")
     api_version: Optional[str] = Field("2024-04", description="Shopify GraphQL API version")
     location_id: Optional[str] = Field(None, description="Shopify location GID")
-    location_name: Optional[str] = Field("123 William Street", description="Shopify location name")
+    location_name: Optional[str] = Field(None, description="Shopify location name")
     auto_sync: Optional[bool] = Field(True, description="Automatically sync stock and new products")
 
 
@@ -82,6 +82,10 @@ async def connect_shopify(req: ShopifyConnectRequest):
     """
     try:
         token = req.access_token.strip()
+        existing_cfg = shopify_client._load_stored_config()
+        if not token:
+            token = existing_cfg.get("access_token") or ""
+
         if token.startswith("shpss_"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -92,13 +96,22 @@ async def connect_shopify(req: ShopifyConnectRequest):
                 ),
             )
 
+        if not (token.startswith("shpat_") or token.startswith("shpua_")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Invalid token format. Shopify Admin API Access Tokens must start with 'shpat_'. "
+                    "Please ensure your browser password manager did not autofill your account login password."
+                ),
+            )
+
         # Persist configuration
         shopify_client.save_config({
             "shop_url": req.shop_url,
             "access_token": token,
             "api_version": req.api_version or "2024-04",
-            "location_id": req.location_id,
-            "location_name": req.location_name or "123 William Street",
+            "location_id": req.location_id or existing_cfg.get("location_id"),
+            "location_name": req.location_name or existing_cfg.get("location_name") or "Shop location",
             "auto_sync": req.auto_sync if req.auto_sync is not None else True,
         })
 

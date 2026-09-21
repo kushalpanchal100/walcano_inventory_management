@@ -175,9 +175,19 @@ export default function StockAdjustModal({
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
               {displayName}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              SKU: <code style={{ fontFamily: 'monospace' }}>{item.sku}</code> • Current on-hand:{' '}
-              <strong>{currentQty}</strong>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>SKU: <code style={{ fontFamily: 'monospace' }}>{item.sku}</code></span>
+              <span>•</span>
+              <span>Current on-hand: <strong>{currentQty}</strong></span>
+              {currentQty <= 0 ? (
+                <span className="pill pill-outstock" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                  Out of Stock
+                </span>
+              ) : (
+                <span className="pill pill-instock" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                  In Stock
+                </span>
+              )}
             </div>
           </div>
 

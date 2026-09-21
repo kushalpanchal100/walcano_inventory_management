@@ -15,6 +15,8 @@ import {
   Layers,
   Sparkles,
   Download,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   ShopifyStatus,
@@ -78,6 +80,7 @@ export default function ShopifyIntegrationModal({
   // Form states
   const [shopUrl, setShopUrl] = useState<string>('');
   const [accessToken, setAccessToken] = useState<string>('');
+  const [showToken, setShowToken] = useState<boolean>(false);
   const [apiVersion, setApiVersion] = useState<string>('2024-04');
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [selectedLocationName, setSelectedLocationName] = useState<string>('123 William Street');
@@ -133,6 +136,8 @@ export default function ShopifyIntegrationModal({
     };
   }, [isOpen]);
 
+  const isLive = Boolean(status?.connected && !status?.is_mock);
+
   if (!isOpen) return null;
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -141,16 +146,27 @@ export default function ShopifyIntegrationModal({
       setErrorMessage('Please enter your Shopify store domain.');
       return;
     }
-    if (!accessToken.trim()) {
+
+    const cleanToken = accessToken.trim();
+    if (!cleanToken && !isLive) {
       setErrorMessage('Please enter your Shopify Admin API Access Token (shpat_...).');
       return;
     }
-    if (accessToken.trim().startsWith('shpss_')) {
-      setErrorMessage(
-        "You entered an API Secret Key ('shpss_...'). Shopify requires the Admin API Access Token ('shpat_...'). " +
-        "In your Shopify Admin, navigate to: Settings -> Apps and sales channels -> Develop apps -> [Your App] -> API credentials -> 'Admin API access token'."
-      );
-      return;
+    if (cleanToken) {
+      if (cleanToken.startsWith('shpss_')) {
+        setErrorMessage(
+          "You entered an API Secret Key ('shpss_...'). Shopify requires the Admin API Access Token ('shpat_...'). " +
+          "In your Shopify Admin, navigate to: Settings -> Apps and sales channels -> Develop apps -> [Your App] -> API credentials -> 'Admin API access token'."
+        );
+        return;
+      }
+      if (!cleanToken.startsWith('shpat_') && !cleanToken.startsWith('shpua_')) {
+        setErrorMessage(
+          "Invalid token format. Your browser password manager may have autofilled your account password. " +
+          "Shopify Admin API Access Tokens must start with 'shpat_'."
+        );
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -160,7 +176,7 @@ export default function ShopifyIntegrationModal({
     try {
       const res = await connectShopify({
         shop_url: shopUrl.trim(),
-        access_token: accessToken.trim(),
+        access_token: cleanToken,
         api_version: apiVersion,
         location_id: selectedLocationId,
         location_name: selectedLocationName,
@@ -242,8 +258,6 @@ export default function ShopifyIntegrationModal({
       setIsSyncingAll(false);
     }
   };
-
-  const isLive = Boolean(status?.connected && !status?.is_mock);
 
   return (
     <div
@@ -486,27 +500,63 @@ export default function ShopifyIntegrationModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>
-                  Admin API Access Token
+                  Admin API Access Token {isLive && <span style={{ color: '#16A34A', fontWeight: 500 }}>(Configured)</span>}
                 </label>
-                <input
-                  type="password"
-                  placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: accessToken.startsWith('shpss_') ? '1px solid #F59E0B' : '1px solid var(--border-subtle)',
-                    background: 'var(--bg-main)',
-                    color: 'var(--text-main)',
-                    fontSize: '13px',
-                    fontFamily: 'monospace',
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    id="shopify_admin_access_token_field"
+                    name="shopify_admin_access_token_field"
+                    autoComplete="one-time-code"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    placeholder={isLive ? '•••••••••••••••• (Leave empty to keep current)' : 'shpat_xxxxxxxxxxxxxxxxxxxxxxxx'}
+                    value={accessToken}
+                    onChange={(e) => setAccessToken(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 36px 9px 12px',
+                      borderRadius: '8px',
+                      border: accessToken.startsWith('shpss_')
+                        ? '1px solid #F59E0B'
+                        : accessToken && !accessToken.startsWith('shpat_') && !accessToken.startsWith('shpua_')
+                        ? '1px solid #EF4444'
+                        : '1px solid var(--border-subtle)',
+                      background: 'var(--bg-main)',
+                      color: 'var(--text-main)',
+                      fontSize: '13px',
+                      fontFamily: 'monospace',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px',
+                    }}
+                    title={showToken ? 'Hide token' : 'Show token'}
+                  >
+                    {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
                 {accessToken.startsWith('shpss_') && (
                   <div style={{ fontSize: '11px', color: '#D97706', marginTop: '4px', lineHeight: 1.3 }}>
                     ⚠️ This is an <strong>API Secret Key</strong> (shpss_...). Please use the <strong>Admin API Access Token</strong> (shpat_...).
+                  </div>
+                )}
+                {accessToken && !accessToken.startsWith('shpss_') && !accessToken.startsWith('shpat_') && !accessToken.startsWith('shpua_') && (
+                  <div style={{ fontSize: '11px', color: '#EF4444', marginTop: '4px', lineHeight: 1.3 }}>
+                    ⚠️ Browser autofilled a password instead of a Shopify token. Token must begin with <code>shpat_</code>.
                   </div>
                 )}
               </div>
@@ -528,7 +578,7 @@ export default function ShopifyIntegrationModal({
                 }}
               >
                 {isSaving ? <RefreshCw size={13} className="spin" /> : <ShieldCheck size={13} />}
-                <span>{isSaving ? 'Verifying...' : 'Save & Verify Connection'}</span>
+                <span>{isSaving ? 'Verifying...' : isLive ? 'Update Credentials' : 'Save & Verify Connection'}</span>
               </button>
             </div>
           </form>
