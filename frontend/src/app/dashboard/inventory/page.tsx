@@ -41,6 +41,7 @@ import AiCopilotDrawer from '@/components/AiCopilotDrawer';
 import AiAutoMapModal from '@/components/AiAutoMapModal';
 import AiRestockModal from '@/components/AiRestockModal';
 import ManualMapModal from '@/components/ManualMapModal';
+import ShopifyExportModal from '@/components/ShopifyExportModal';
 
 export default function QuickBooksInventoryPage() {
   const [items, setItems] = useState<QuickBooksInventoryItem[]>([]);
@@ -59,6 +60,7 @@ export default function QuickBooksInventoryPage() {
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isRestockOpen, setIsRestockOpen] = useState<boolean>(false);
+  const [isShopifyExportOpen, setIsShopifyExportOpen] = useState<boolean>(false);
   const [connectionBanner, setConnectionBanner] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
@@ -256,30 +258,14 @@ export default function QuickBooksInventoryPage() {
     return { totalProducts, totalQty, inStock, lowStock, outOfStock, mappedCount, unmappedCount };
   }, [items]);
 
-  // CSV Export
+  // CSV Export - Opens Shopify Export modal with full configuration and live preview
   const handleExportCsv = useCallback(() => {
     const itemsToExport = filteredItems.length > 0 ? filteredItems : items;
     if (itemsToExport.length === 0) {
       alert('No inventory items available to export.');
       return;
     }
-
-    setIsExporting(true);
-    try {
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
-      const filename = `walcano_inventory_${dateStr}.csv`;
-      const success = downloadInventoryCsv(itemsToExport, filename);
-      if (success) {
-        setExportSuccess(true);
-        setTimeout(() => setExportSuccess(false), 2500);
-      }
-    } catch (err: any) {
-      console.error('Failed to export CSV:', err);
-      alert('Failed to generate CSV export.');
-    } finally {
-      setIsExporting(false);
-    }
+    setIsShopifyExportOpen(true);
   }, [filteredItems, items]);
 
   return (
@@ -1316,6 +1302,13 @@ export default function QuickBooksInventoryPage() {
         onClose={() => setManualMapItem(null)}
         item={manualMapItem}
         onMappingSaved={handleManualMappingSaved}
+      />
+
+      {/* Shopify Inventory CSV Export Modal */}
+      <ShopifyExportModal
+        isOpen={isShopifyExportOpen}
+        onClose={() => setIsShopifyExportOpen(false)}
+        items={filteredItems.length > 0 ? filteredItems : items}
       />
     </DashboardLayout>
   );

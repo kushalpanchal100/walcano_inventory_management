@@ -95,6 +95,26 @@ export interface QuickBooksInventoryItem {
   category: string;
   type?: string;
   active?: boolean;
+
+  // Shopify Inventory specific fields
+  handle?: string;
+  title?: string;
+  option1_name?: string;
+  option1_value?: string;
+  option2_name?: string;
+  option2_value?: string;
+  option3_name?: string;
+  option3_value?: string;
+  hs_code?: string;
+  coo?: string;
+  location?: string;
+  bin_name?: string;
+  incoming?: number;
+  unavailable?: number;
+  committed?: number;
+  available?: number;
+  on_hand_current?: number;
+  on_hand_new?: number;
 }
 
 export interface QuickBooksInventoryResponse {
