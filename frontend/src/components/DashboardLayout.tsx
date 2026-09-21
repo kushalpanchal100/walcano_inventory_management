@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, RefreshCw } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Search, RefreshCw, LogOut, User as UserIcon } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -27,31 +30,110 @@ export default function DashboardLayout({
   onRefreshClick,
   isRefreshing = false,
 }: DashboardLayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [searchValue, setSearchValue] = useState('');
+
+  // Route protection guard
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace(`/login?next=${encodeURIComponent(pathname || '/dashboard/inventory')}`);
+    }
+  }, [isLoading, isAuthenticated, pathname, router]);
+
+  // Loading state while verifying token
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-workspace)',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+          <img
+            src="/brands/wallcano-logo.png"
+            alt="Wallcano Tiles"
+            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+          />
+          <div style={{ height: '24px', width: '1px', background: 'var(--border-subtle)' }} />
+          <img
+            src="/brands/surfaces-logo.png"
+            alt="Surfaces Tiles"
+            style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+          />
+        </div>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid #E2E8F0',
+            borderTopColor: 'var(--surfaces-gold)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+          Authenticating platform session...
+        </span>
+        <style jsx>{`
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Not authenticated fallback
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // Generate initials for avatar
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg-workspace)' }}>
       {/* ─── TOP UNIFIED HEADER BAR ─────────────────────────────────── */}
       <header
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-header)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border-subtle)',
           position: 'sticky',
           top: 0,
-          zIndex: 40,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+          zIndex: 100,
+          boxShadow: 'var(--shadow-xs)',
+          transition: 'background 0.25s ease, border-color 0.25s ease',
         }}
       >
         <div
           style={{
             maxWidth: '1700px',
             margin: '0 auto',
-            padding: '12px 28px',
+            padding: '8px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '20px',
-            flexWrap: 'wrap',
+            gap: '12px',
+            flexWrap: 'nowrap',
           }}
         >
           {/* ─── Left: Combined Brand / Logo Area ─────────────────────── */}
@@ -60,36 +142,37 @@ export default function DashboardLayout({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              background: '#FFFFFF',
-              padding: '6px 14px',
+              gap: '10px',
+              background: 'var(--bg-card)',
+              padding: '5px 12px',
               borderRadius: '10px',
               border: '1px solid var(--border-subtle)',
               textDecoration: 'none',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+              boxShadow: 'var(--shadow-xs)',
               flexShrink: 0,
+              transition: 'all 0.15s ease',
             }}
           >
             {/* Wallcano Logo */}
             <img
               src="/brands/wallcano-logo.png"
               alt="Wallcano Tiles"
-              style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
             />
 
             {/* Vertical Divider */}
-            <div style={{ height: '22px', width: '1px', background: 'var(--border-subtle)' }} />
+            <div style={{ height: '20px', width: '1px', background: 'var(--border-subtle)' }} />
 
             {/* Surfaces Logo */}
             <img
               src="/brands/surfaces-logo.png"
               alt="Surfaces Tiles"
-              style={{ height: '18px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: '16px', width: 'auto', objectFit: 'contain' }}
             />
 
             {/* Combined Brand Label */}
             <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '2px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--wallcano-dark)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
                 WALLCANO × SURFACES
               </span>
               <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--surfaces-gold)', lineHeight: 1 }}>
@@ -105,14 +188,15 @@ export default function DashboardLayout({
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
-              flex: '1 1 300px',
-              maxWidth: '440px',
+              flex: '1 1 200px',
+              minWidth: '150px',
+              maxWidth: '340px',
             }}
           >
             <Search
-              size={15}
+              size={14}
               color="#94A3B8"
-              style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}
+              style={{ position: 'absolute', left: '11px', pointerEvents: 'none' }}
             />
             <input
               type="text"
@@ -124,22 +208,22 @@ export default function DashboardLayout({
               }}
               style={{
                 width: '100%',
-                padding: '8px 12px 8px 36px',
+                padding: '7px 12px 7px 32px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-subtle)',
-                background: '#F8FAFC',
-                fontSize: '13px',
+                background: 'var(--bg-input)',
+                fontSize: '12px',
                 color: 'var(--text-main)',
                 outline: 'none',
                 transition: 'all 0.15s ease',
               }}
               onFocus={(e) => {
-                e.target.style.background = '#FFFFFF';
+                e.target.style.background = 'var(--bg-card)';
                 e.target.style.borderColor = 'var(--surfaces-gold)';
-                e.target.style.boxShadow = '0 0 0 3px rgba(184, 134, 11, 0.12)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(184, 134, 11, 0.15)';
               }}
               onBlur={(e) => {
-                e.target.style.background = '#F8FAFC';
+                e.target.style.background = 'var(--bg-input)';
                 e.target.style.borderColor = 'var(--border-subtle)';
                 e.target.style.boxShadow = 'none';
               }}
@@ -152,8 +236,9 @@ export default function DashboardLayout({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
+              gap: '6px',
+              flexWrap: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {/* QuickBooks Connect & Status Button */}
@@ -167,7 +252,7 @@ export default function DashboardLayout({
                 disabled={isRefreshing}
                 className="btn btn-secondary"
                 title="Sync with QuickBooks"
-                style={{ padding: '7px 12px', fontSize: '12px' }}
+                style={{ padding: '6px 11px', fontSize: '12px', whiteSpace: 'nowrap' }}
               >
                 <RefreshCw
                   size={13}
@@ -179,6 +264,109 @@ export default function DashboardLayout({
 
             {/* Custom action buttons (AI Copilot, Restock, CSV Export) */}
             {actions}
+
+            {/* Dark / Light Theme Mode Toggle Button */}
+            <ThemeToggle />
+
+            {/* User Profile & Sign Out */}
+            {user && (
+              <>
+                <div style={{ height: '22px', width: '1px', background: 'var(--border-subtle)', margin: '0 2px' }} />
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '3px 8px 3px 5px',
+                    borderRadius: '20px',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {/* Initials Avatar */}
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'var(--brand-primary)',
+                      color: 'var(--surfaces-gold)',
+                      border: '1.5px solid var(--surfaces-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      letterSpacing: '0.02em',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {getInitials(user.full_name)}
+                  </div>
+
+                  {/* User Details */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        maxWidth: '120px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={user.full_name}
+                    >
+                      {user.full_name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        color: user.role === 'admin' ? 'var(--surfaces-gold)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {user.role === 'admin' ? 'Administrator' : 'Staff'}
+                    </span>
+                  </div>
+
+                  {/* Sign Out Button */}
+                  <button
+                    type="button"
+                    onClick={logout}
+                    title="Sign Out"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      marginLeft: '2px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#EF4444';
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -194,7 +382,7 @@ export default function DashboardLayout({
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
                   marginBottom: '6px',
-                  background: 'linear-gradient(135deg, #0F172A 35%, #8C6D1F 75%, #B8860B 100%)',
+                  background: 'var(--title-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   display: 'inline-block',
@@ -207,7 +395,7 @@ export default function DashboardLayout({
               <p
                 style={{
                   fontSize: '13px',
-                  color: '#6B5E4A',
+                  color: 'var(--text-secondary)',
                   fontWeight: 500,
                   maxWidth: '750px',
                   margin: '0 auto',

@@ -25,6 +25,13 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Environment: {settings.APP_ENV}")
     logger.info(f"   Debug: {settings.DEBUG}")
 
+    # Initialize database tables and initial admin
+    try:
+        from app.db.session import init_db
+        init_db()
+    except Exception as exc:
+        logger.error(f"Failed to initialize database: {exc}")
+
     yield
 
     logger.info(f"🛑 Shutting down {settings.APP_NAME}")
@@ -52,9 +59,11 @@ application.add_middleware(
 
 # ─── Register API Routers ────────────────────────────────────────────────
 
+from app.api.auth.routes import router as auth_router  # noqa: E402
 from app.api.quickbooks.routes import router as quickbooks_router  # noqa: E402
 from app.api.ai.routes import router as ai_router  # noqa: E402
 
+application.include_router(auth_router, prefix="/api/v1")
 application.include_router(quickbooks_router, prefix="/api/v1")
 application.include_router(ai_router, prefix="/api/v1")
 

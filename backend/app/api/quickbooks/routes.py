@@ -107,11 +107,17 @@ async def export_inventory_csv(
     search: Optional[str] = Query(None, description="Filter exported items by search term"),
     category: Optional[str] = Query(None, description="Filter exported items by category"),
     demo: bool = Query(False, description="Explicit preview mode"),
+    location: str = Query("123 William Street", description="Shopify inventory location name"),
+    fill_on_hand_new: bool = Query(True, description="Populate 'On hand (new)' with current stock count for direct import"),
 ):
     """
-    Export QuickBooks live inventory directly as a downloadable CSV file.
-    Includes UTF-8 BOM encoding for full Microsoft Excel and Google Sheets compatibility.
+    Export inventory directly as a downloadable CSV formatted for Shopify import.
+    Matches inventory_bin_new_on_hand_template.csv exactly (19 columns).
+    Includes UTF-8 BOM encoding for full Microsoft Excel, Google Sheets, and Shopify compatibility.
     """
+    import re
+    from app.integrations.quickbooks.product_mapping import normalize_size, extract_finish
+
     inv = await qbo_client.fetch_live_inventory(
         search=search,
         category=category,
@@ -120,43 +126,120 @@ async def export_inventory_csv(
     items = inv.get("items", [])
 
     output = io.StringIO()
-    # Write UTF-8 BOM for Excel compatibility
+    # Write UTF-8 BOM for Excel and international characters
     output.write("\ufeff")
     writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+    # Exact 19 Shopify Inventory headers matching inventory_bin_new_on_hand_template.csv
     writer.writerow([
-        "Walcano Product Name",
-        "Surfaces Product Name",
-        "Mapping Status",
+        "Handle",
+        "Title",
+        "Option1 Name",
+        "Option1 Value",
+        "Option2 Name",
+        "Option2 Value",
+        "Option3 Name",
+        "Option3 Value",
         "SKU",
-        "Quantity on Hand",
-        "Stock Status",
-        "Category",
-        "Type",
-        "QuickBooks ID",
+        "HS Code",
+        "COO",
+        "Location",
+        "Bin name",
+        "Incoming (not editable)",
+        "Unavailable (not editable)",
+        "Committed (not editable)",
+        "Available (not editable)",
+        "On hand (current)",
+        "On hand (new)",
     ])
 
+    def format_qty(val):
+        if val is None or val == "":
+            return ""
+        try:
+            f = float(val)
+            return str(int(f)) if f.is_integer() else str(f)
+        except (ValueError, TypeError):
+            return str(val)
+
+    def slugify(text):
+        if not text:
+            return "product"
+        s = text.lower()
+        s = re.sub(r'[^a-z0-9]+', '-', s)
+        s = re.sub(r'-+', '-', s)
+        return s.strip('-') or "product"
+
     for it in items:
-        qty = it.get("qty_on_hand", 0.0)
-        status_label = "In Stock" if qty > 10 else ("Low Stock" if qty > 0 else "Out of Stock")
-        is_mapped = it.get("is_mapped", False)
-        surfaces_name = it.get("surfaces_name") or "No Mapping Available"
-        mapping_status = "Mapped" if is_mapped else "No Mapping Available"
-        walcano_name = it.get("walcano_name") or it.get("name", "")
+        title = (it.get("walcano_name") or it.get("name") or it.get("title") or "").strip()
+        handle = (it.get("handle") or slugify(title)).strip()
+        sku = (it.get("sku") or "").strip()
+
+        # Options determination
+        opt1_name = it.get("option1_name", "")
+        opt1_val = it.get("option1_value", "")
+        opt2_name = it.get("option2_name", "")
+        opt2_val = it.get("option2_value", "")
+        opt3_name = it.get("option3_name", "")
+        opt3_val = it.get("option3_value", "")
+
+        if not opt1_name and not opt1_val:
+            combined = f"{title} {sku} {it.get('category', '')}"
+            size_tuple = normalize_size(combined)
+            finishes = extract_finish(combined)
+
+            if size_tuple:
+                opt1_name = "Size"
+                opt1_val = f"{size_tuple[0]}x{size_tuple[1]} cm"
+                if finishes:
+                    opt2_name = "Finish"
+                    opt2_val = finishes[0].capitalize()
+            else:
+                opt1_name = "Title"
+                opt1_val = "Default Title"
+
+        hs_code = it.get("hs_code", "")
+        coo = it.get("coo", "")
+        bin_name = it.get("bin_name") or it.get("bin") or ""
+        target_location = (it.get("location") or location or "123 William Street").strip()
+
+        raw_qty = float(it.get("qty_on_hand", 0.0) or 0.0)
+        incoming = format_qty(it.get("incoming", 0))
+        unavailable = format_qty(it.get("unavailable", 0))
+        committed = format_qty(it.get("committed", 0))
+
+        committed_float = float(it.get("committed", 0) or 0.0)
+        available_qty = it.get("available") if it.get("available") is not None else max(0.0, raw_qty - committed_float)
+        available = format_qty(available_qty)
+        on_hand_current = format_qty(it.get("on_hand_current") if it.get("on_hand_current") is not None else raw_qty)
+
+        # On hand (new): populated with current stock for direct import without manual modifications
+        on_hand_new = format_qty(it.get("on_hand_new") if it.get("on_hand_new") is not None else raw_qty) if fill_on_hand_new else ""
 
         writer.writerow([
-            walcano_name,
-            surfaces_name,
-            mapping_status,
-            it.get("sku", ""),
-            qty,
-            status_label,
-            it.get("category", "General"),
-            it.get("type", "Inventory"),
-            it.get("id", ""),
+            handle,
+            title,
+            opt1_name,
+            opt1_val,
+            opt2_name,
+            opt2_val,
+            opt3_name,
+            opt3_val,
+            sku,
+            hs_code,
+            coo,
+            target_location,
+            bin_name,
+            incoming,
+            unavailable,
+            committed,
+            available,
+            on_hand_current,
+            on_hand_new,
         ])
 
     today_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f"quickbooks_inventory_{today_str}.csv"
+    filename = f"shopify_inventory_{today_str}.csv"
     output.seek(0)
 
     return StreamingResponse(
@@ -164,4 +247,5 @@ async def export_inventory_csv(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
 

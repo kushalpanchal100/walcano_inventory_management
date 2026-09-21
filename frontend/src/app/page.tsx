@@ -2,52 +2,48 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import DynamicBrandBackground from '@/components/DynamicBrandBackground';
 
 export default function Home() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace('/dashboard/inventory');
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [router]);
+    if (!isLoading) {
+      if (isAuthenticated) {
+        router.replace('/dashboard/inventory');
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-workspace)',
-        padding: '20px',
-      }}
-    >
+    <DynamicBrandBackground style={{ padding: '20px' }}>
       <div
         style={{
-          background: '#FFFFFF',
-          borderRadius: '16px',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-md)',
+          background: 'rgba(255, 255, 255, 0.98)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '20px',
+          border: '1px solid rgba(223, 191, 119, 0.38)',
+          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.5), 0 0 35px rgba(184, 134, 11, 0.16)',
           padding: '40px 48px',
           textAlign: 'center',
           maxWidth: '440px',
           width: '100%',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
           <img
-            src="/brands/wallcano-logo.png"
-            alt="Wallcano Tiles"
-            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+            src="/brands/wallcano-group-logo.png"
+            alt="Wallcano Group"
+            style={{ height: '72px', width: 'auto', maxWidth: '220px', objectFit: 'contain', marginBottom: '8px' }}
           />
-          <div style={{ width: '1px', height: '28px', background: 'var(--border-subtle)' }} />
-          <img
-            src="/brands/surfaces-logo.png"
-            alt="Surfaces Tiles"
-            style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
-          />
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--surfaces-gold)' }}>
+            Wallcano &bull; Surfaces Tiles
+          </div>
         </div>
 
         <div
@@ -55,7 +51,7 @@ export default function Home() {
             width: '32px',
             height: '32px',
             border: '3px solid #E2E8F0',
-            borderTopColor: '#4F46E5',
+            borderTopColor: 'var(--surfaces-gold)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
             margin: '0 auto 16px',
@@ -63,7 +59,7 @@ export default function Home() {
         />
 
         <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-          Walcano & Surfaces Inventory Platform
+          Wallcano &amp; Surfaces Inventory Platform
         </div>
         <p style={{ color: '#64748B', fontSize: '12px' }}>
           Initializing QuickBooks live synchronization...
@@ -77,6 +73,6 @@ export default function Home() {
           }
         }
       `}</style>
-    </div>
+    </DynamicBrandBackground>
   );
 }

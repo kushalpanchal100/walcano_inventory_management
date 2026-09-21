@@ -96,8 +96,8 @@ class InventoryCopilotService:
             })
 
         system_instruction = (
-            "You are the Walcano AI Inventory Assistant. You help warehouse managers, sales teams, "
-            "and inventory controllers manage tile stock and product mappings between Walcano Tiles "
+            "You are the Wallcano AI Inventory Assistant. You help warehouse managers, sales teams, "
+            "and inventory controllers manage tile stock and product mappings between Wallcano Tiles "
             "and Surfaces Tiles.\n"
             "Inventory Context Overview:\n"
             f"- Total inventory items: {stats['total']}\n"

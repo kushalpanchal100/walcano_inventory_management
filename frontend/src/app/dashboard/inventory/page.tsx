@@ -41,6 +41,7 @@ import AiCopilotDrawer from '@/components/AiCopilotDrawer';
 import AiAutoMapModal from '@/components/AiAutoMapModal';
 import AiRestockModal from '@/components/AiRestockModal';
 import ManualMapModal from '@/components/ManualMapModal';
+import ShopifyExportModal from '@/components/ShopifyExportModal';
 
 export default function QuickBooksInventoryPage() {
   const [items, setItems] = useState<QuickBooksInventoryItem[]>([]);
@@ -59,6 +60,7 @@ export default function QuickBooksInventoryPage() {
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isRestockOpen, setIsRestockOpen] = useState<boolean>(false);
+  const [isShopifyExportOpen, setIsShopifyExportOpen] = useState<boolean>(false);
   const [connectionBanner, setConnectionBanner] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
@@ -256,30 +258,14 @@ export default function QuickBooksInventoryPage() {
     return { totalProducts, totalQty, inStock, lowStock, outOfStock, mappedCount, unmappedCount };
   }, [items]);
 
-  // CSV Export
+  // CSV Export - Opens Shopify Export modal with full configuration and live preview
   const handleExportCsv = useCallback(() => {
     const itemsToExport = filteredItems.length > 0 ? filteredItems : items;
     if (itemsToExport.length === 0) {
       alert('No inventory items available to export.');
       return;
     }
-
-    setIsExporting(true);
-    try {
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
-      const filename = `walcano_inventory_${dateStr}.csv`;
-      const success = downloadInventoryCsv(itemsToExport, filename);
-      if (success) {
-        setExportSuccess(true);
-        setTimeout(() => setExportSuccess(false), 2500);
-      }
-    } catch (err: any) {
-      console.error('Failed to export CSV:', err);
-      alert('Failed to generate CSV export.');
-    } finally {
-      setIsExporting(false);
-    }
+    setIsShopifyExportOpen(true);
   }, [filteredItems, items]);
 
   return (
@@ -302,19 +288,18 @@ export default function QuickBooksInventoryPage() {
         />
       }
       actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
           {/* AI Copilot Button */}
           <button
             type="button"
             onClick={() => setIsCopilotOpen(true)}
             className="btn btn-ai"
             title="Open AI Inventory Assistant"
+            style={{ padding: '6px 11px', fontSize: '12px', whiteSpace: 'nowrap' }}
           >
-            <Sparkles size={14} />
+            <Sparkles size={13} />
             <span>AI Copilot</span>
           </button>
-
-
 
           {/* AI Restock Insights Button */}
           <button
@@ -322,8 +307,9 @@ export default function QuickBooksInventoryPage() {
             onClick={() => setIsRestockOpen(true)}
             className="btn btn-secondary"
             title="AI Stockout forecasting and replenishment recommendations"
+            style={{ padding: '6px 11px', fontSize: '12px', whiteSpace: 'nowrap' }}
           >
-            <TrendingDown size={14} color="var(--surfaces-gold)" />
+            <TrendingDown size={13} color="var(--surfaces-gold)" />
             <span>Restock AI</span>
           </button>
 
@@ -334,11 +320,14 @@ export default function QuickBooksInventoryPage() {
             disabled={items.length === 0 || isLoading || isExporting}
             className="btn btn-primary"
             style={{
-              background: exportSuccess ? '#16A34A' : '#0F172A',
-              borderColor: exportSuccess ? '#16A34A' : '#0F172A',
+              padding: '6px 11px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              background: exportSuccess ? '#16A34A' : undefined,
+              borderColor: exportSuccess ? '#16A34A' : undefined,
             }}
           >
-            {exportSuccess ? <Check size={14} /> : <Download size={14} />}
+            {exportSuccess ? <Check size={13} /> : <Download size={13} />}
             <span>{exportSuccess ? 'Downloaded!' : 'Export CSV'}</span>
             {filteredItems.length > 0 && !exportSuccess && (
               <span
@@ -346,7 +335,7 @@ export default function QuickBooksInventoryPage() {
                   fontSize: '10px',
                   fontWeight: 700,
                   background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '1px 6px',
+                  padding: '1px 5px',
                   borderRadius: '10px',
                 }}
               >
@@ -428,7 +417,7 @@ export default function QuickBooksInventoryPage() {
       {/* ─── DUAL BRAND HERO BANNER ──────────────────────────────────── */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-card)',
           borderRadius: '14px',
           border: '1px solid var(--border-subtle)',
           padding: '22px 24px',
@@ -448,7 +437,7 @@ export default function QuickBooksInventoryPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                background: '#F8FAFC',
+                background: '#FFFFFF',
                 padding: '8px 16px',
                 borderRadius: '10px',
                 border: '1px solid var(--border-subtle)',
@@ -479,7 +468,7 @@ export default function QuickBooksInventoryPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                background: '#FEFDF8',
+                background: '#FFFFFF',
                 padding: '8px 16px',
                 borderRadius: '10px',
                 border: '1px solid var(--surfaces-border)',
@@ -513,7 +502,7 @@ export default function QuickBooksInventoryPage() {
             gap: '10px',
             fontSize: '12px',
             color: 'var(--text-secondary)',
-            background: '#F8FAFC',
+            background: 'var(--bg-subtle)',
             padding: '5px 14px',
             borderRadius: '20px',
             border: '1px solid var(--border-subtle)',
@@ -658,8 +647,8 @@ export default function QuickBooksInventoryPage() {
             marginBottom: '20px',
             padding: '12px 18px',
             borderRadius: '10px',
-            background: '#FFFBEB',
-            border: '1px solid #FCD34D',
+            background: 'var(--status-low-bg)',
+            border: '1px solid var(--status-low-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -668,12 +657,12 @@ export default function QuickBooksInventoryPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Sparkles size={18} color="#D97706" />
+            <Sparkles size={18} color="var(--status-low-text)" />
             <div>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400E' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--status-low-text)' }}>
                 Demo Preview Mode Active
               </span>
-              <span style={{ fontSize: '12px', color: '#B45309', marginLeft: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
                 Showing sample tile records. Connect your live QuickBooks company for authoritative real-time stock.
               </span>
             </div>
@@ -751,22 +740,22 @@ export default function QuickBooksInventoryPage() {
           </div>
         </div>
 
-        {/* Metric 3: Walcano Exclusive / Unmapped */}
+        {/* Metric 3: Wallcano Exclusive / Unmapped */}
         <div
           className="stat-card stat-card-ribbon-wallcano"
           onClick={() => setMappingFilter('unmapped')}
           style={{ cursor: 'pointer' }}
-          title="Click to filter Walcano unmapped items"
+          title="Click to filter Wallcano unmapped items"
         >
           <div className="stat-title" style={{ color: 'var(--wallcano-slate)' }}>
             <Unlink size={14} color="var(--wallcano-slate)" />
-            <span>Walcano Exclusive</span>
+            <span>Wallcano Exclusive</span>
           </div>
           <div className="stat-value" style={{ color: 'var(--wallcano-dark)' }}>
             {isLoading ? '-' : metrics.unmappedCount}
           </div>
           <div className="stat-desc" style={{ color: 'var(--text-muted)' }}>
-            Unmapped / Exclusive to Walcano
+            Unmapped / Exclusive to Wallcano
           </div>
         </div>
 
@@ -807,7 +796,7 @@ export default function QuickBooksInventoryPage() {
       {/* ─── FILTERS & CONTROLS ──────────────────────────────────────── */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-card)',
           borderRadius: '12px',
           border: '1px solid var(--border-subtle)',
           padding: '16px 20px',
@@ -832,14 +821,18 @@ export default function QuickBooksInventoryPage() {
         >
           {/* Brand Segmented Tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
               Catalog View:
             </span>
             <button
               type="button"
               onClick={() => setMappingFilter('all')}
               className={`btn ${mappingFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '6px 12px', fontSize: '12px' }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: mappingFilter === 'all' ? 700 : 600,
+              }}
             >
               All Tiles ({items.length})
             </button>
@@ -865,13 +858,13 @@ export default function QuickBooksInventoryPage() {
               style={{
                 padding: '6px 12px',
                 fontSize: '12px',
-                background: mappingFilter === 'unmapped' ? 'var(--wallcano-slate)' : '#F1F5F9',
-                color: mappingFilter === 'unmapped' ? '#FFFFFF' : 'var(--wallcano-slate)',
-                borderColor: mappingFilter === 'unmapped' ? 'var(--wallcano-slate)' : '#CBD5E1',
+                background: mappingFilter === 'unmapped' ? 'var(--wallcano-slate)' : 'var(--bg-subtle)',
+                color: mappingFilter === 'unmapped' ? '#FFFFFF' : 'var(--text-secondary)',
+                borderColor: mappingFilter === 'unmapped' ? 'var(--wallcano-slate)' : 'var(--border-subtle)',
               }}
             >
               <Unlink size={13} />
-              <span>Walcano Only ({metrics.unmappedCount})</span>
+              <span>Wallcano Only ({metrics.unmappedCount})</span>
             </button>
           </div>
 
@@ -884,8 +877,8 @@ export default function QuickBooksInventoryPage() {
                 padding: '7px 12px',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#334155',
-                background: '#F8FAFC',
+                color: 'var(--text-main)',
+                background: 'var(--bg-input)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 outline: 'none',
@@ -899,7 +892,7 @@ export default function QuickBooksInventoryPage() {
             </select>
 
             {lastSynced && (
-              <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 Synced: {new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
@@ -908,7 +901,7 @@ export default function QuickBooksInventoryPage() {
 
         {/* Row 2: Category Filter Chips */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginRight: '4px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginRight: '4px' }}>
             Category:
           </span>
           {['All', ...categories].map((cat) => {
@@ -924,9 +917,9 @@ export default function QuickBooksInventoryPage() {
                   fontSize: '11px',
                   fontWeight: isSelected ? 700 : 500,
                   border: '1px solid',
-                  borderColor: isSelected ? '#0F172A' : 'var(--border-subtle)',
-                  background: isSelected ? '#0F172A' : '#F8FAFC',
-                  color: isSelected ? '#FFFFFF' : '#475569',
+                  borderColor: isSelected ? 'var(--surfaces-gold)' : 'var(--border-subtle)',
+                  background: isSelected ? 'var(--surfaces-gold)' : 'var(--bg-subtle)',
+                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -948,7 +941,7 @@ export default function QuickBooksInventoryPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#FFFFFF',
+            background: 'var(--bg-card)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1065,13 +1058,13 @@ export default function QuickBooksInventoryPage() {
                     <tr key={item.id || item.sku || index}>
                       {/* Column 1: Wallcano Tiles Product Name */}
                       <td>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', lineHeight: '1.3' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', lineHeight: '1.3' }}>
                           {walcanoDisplayName}
                         </div>
                         <div
                           style={{
                             fontSize: '11px',
-                            color: '#64748B',
+                            color: 'var(--text-muted)',
                             marginTop: '2px',
                             display: 'flex',
                             alignItems: 'center',
@@ -1099,15 +1092,15 @@ export default function QuickBooksInventoryPage() {
                             width: '24px',
                             height: '24px',
                             borderRadius: '5px',
-                            border: '1px solid #E2E8F0',
-                            background: '#FFFFFF',
+                            border: '1px solid var(--border-subtle)',
+                            background: 'var(--bg-card)',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#64748B',
+                            color: 'var(--text-muted)',
                             cursor: 'pointer',
                             zIndex: 2,
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                            boxShadow: 'var(--shadow-xs)',
                           }}
                           title="Map Product Manually"
                           aria-label="Map Product Manually"
@@ -1123,7 +1116,7 @@ export default function QuickBooksInventoryPage() {
                                   MAPPED
                                 </span>
                                 {item.mapping_note && item.mapping_note.toLowerCase().includes('manual') ? (
-                                  <span className="pill pill-neutral" style={{ fontSize: '9px', padding: '1px 5px', background: '#F1F5F9', color: '#475569' }}>
+                                  <span className="pill pill-neutral" style={{ fontSize: '9px', padding: '1px 5px', background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
                                     ✍️ Manual
                                   </span>
                                 ) : item.mapping_note && (item.mapping_note.toLowerCase().includes('gemini') || item.mapping_note.toLowerCase().includes('ai')) ? (
@@ -1132,11 +1125,11 @@ export default function QuickBooksInventoryPage() {
                                   </span>
                                 ) : null}
                               </div>
-                              <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350F', lineHeight: '1.3' }}>
+                              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--surfaces-text-badge)', lineHeight: '1.3' }}>
                                 {item.surfaces_name}
                               </div>
                               {item.surfaces_variants && item.surfaces_variants.length > 1 && (
-                                <div style={{ fontSize: '11px', color: '#B45309', marginTop: '2px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--surfaces-gold-light)', marginTop: '2px' }}>
                                   {item.surfaces_variants.length} catalog variations
                                 </div>
                               )}
@@ -1151,8 +1144,8 @@ export default function QuickBooksInventoryPage() {
                                   fontSize: '10px',
                                   fontWeight: 700,
                                   color: '#7C3AED',
-                                  borderColor: '#DDD6FE',
-                                  background: '#F5F3FF',
+                                  borderColor: 'rgba(124, 58, 237, 0.4)',
+                                  background: 'rgba(124, 58, 237, 0.12)',
                                   borderRadius: '5px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -1181,8 +1174,8 @@ export default function QuickBooksInventoryPage() {
                                 fontSize: '10px',
                                 fontWeight: 700,
                                 color: '#7C3AED',
-                                borderColor: '#DDD6FE',
-                                background: '#F5F3FF',
+                                borderColor: 'rgba(124, 58, 237, 0.4)',
+                                background: 'rgba(124, 58, 237, 0.12)',
                                 borderRadius: '5px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1200,7 +1193,7 @@ export default function QuickBooksInventoryPage() {
                               style={{
                                 background: 'transparent',
                                 border: 'none',
-                                color: 'var(--surfaces-gold, #B45309)',
+                                color: 'var(--surfaces-gold)',
                                 fontWeight: 600,
                                 textDecoration: 'underline',
                                 cursor: 'pointer',
@@ -1225,8 +1218,8 @@ export default function QuickBooksInventoryPage() {
                             fontFamily: 'monospace',
                             fontSize: '11px',
                             fontWeight: 600,
-                            color: '#334155',
-                            background: '#F1F5F9',
+                            color: 'var(--text-secondary)',
+                            background: 'var(--bg-subtle)',
                             padding: '3px 7px',
                             borderRadius: '6px',
                             border: '1px solid var(--border-subtle)',
@@ -1244,7 +1237,7 @@ export default function QuickBooksInventoryPage() {
                             style={{
                               fontSize: '14px',
                               fontWeight: 800,
-                              color: item.qty_on_hand <= 0 ? '#BE123C' : '#0F172A',
+                              color: item.qty_on_hand <= 0 ? 'var(--status-out-text)' : 'var(--text-main)',
                             }}
                           >
                             {item.qty_on_hand.toLocaleString()}
@@ -1309,6 +1302,13 @@ export default function QuickBooksInventoryPage() {
         onClose={() => setManualMapItem(null)}
         item={manualMapItem}
         onMappingSaved={handleManualMappingSaved}
+      />
+
+      {/* Shopify Inventory CSV Export Modal */}
+      <ShopifyExportModal
+        isOpen={isShopifyExportOpen}
+        onClose={() => setIsShopifyExportOpen(false)}
+        items={filteredItems.length > 0 ? filteredItems : items}
       />
     </DashboardLayout>
   );

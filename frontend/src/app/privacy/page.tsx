@@ -9,14 +9,14 @@ export default function PrivacyPolicyPage() {
           Privacy Policy
         </h1>
         <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
-          Last Updated: January 1, 2026 | Walcano &amp; Surfaces Tiles Inventory Management
+          Last Updated: January 1, 2026 | Wallcano &amp; Surfaces Tiles Inventory Management
         </p>
       </header>
 
       <section style={{ marginBottom: '28px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '10px' }}>1. Introduction</h2>
         <p>
-          Walcano &amp; Surfaces Tiles (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) respects your privacy. This Privacy Policy explains 
+          Wallcano &amp; Surfaces Tiles (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) respects your privacy. This Privacy Policy explains 
           how information is collected, used, and safeguarded when you use our web-based inventory management platform at 
           <strong> inventory.surfacestiles.cloud</strong>.
         </p>

@@ -229,15 +229,15 @@ export default function AiAutoMapModal({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                   AI Product Auto-Mapper
                 </h3>
                 <span className="pill pill-ai">AI Assisted</span>
                 <span
                   style={{
                     fontSize: '11px',
-                    background: '#EDE9FE',
-                    color: '#6D28D9',
+                    background: 'rgba(124, 58, 237, 0.15)',
+                    color: '#A78BFA',
                     padding: '2px 8px',
                     borderRadius: '12px',
                     fontWeight: 700,
@@ -246,8 +246,8 @@ export default function AiAutoMapModal({
                   Strict 1:1 Mapping
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748B', marginTop: '3px' }}>
-                The selected Walcano product is the <strong>single source of truth</strong> for generating the unique Surfaces Tiles product name.
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                The selected Wallcano product is the <strong>single source of truth</strong> for generating the unique Surfaces Tiles product name.
               </p>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function AiAutoMapModal({
 
         {/* Modal Body */}
         <div className="ai-modal-body" style={{ padding: '24px' }}>
-          {/* ─── 1. SELECTED WALCANO PRODUCT (SINGLE SOURCE OF TRUTH) ─── */}
+          {/* ─── 1. SELECTED WALLCANO PRODUCT (SINGLE SOURCE OF TRUTH) ─── */}
           <div
             style={{
               padding: '16px 20px',
@@ -279,7 +279,7 @@ export default function AiAutoMapModal({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="pill pill-wallcano" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                  SOURCE WALCANO PRODUCT
+                  SOURCE WALLCANO PRODUCT
                 </span>
                 <span style={{ fontSize: '11px', color: '#64748B' }}>
                   Single Source of Truth
@@ -312,11 +312,11 @@ export default function AiAutoMapModal({
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    border: '1.5px solid #CBD5E1',
+                    border: '1.5px solid var(--border-medium)',
                     fontSize: '13px',
                     fontWeight: 700,
-                    color: '#0F172A',
-                    background: '#FFFFFF',
+                    color: 'var(--text-main)',
+                    background: 'var(--bg-input)',
                     outline: 'none',
                     cursor: 'pointer',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
@@ -368,10 +368,10 @@ export default function AiAutoMapModal({
 
             {/* Product Meta Details */}
             {selectedProductObj && (
-              <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#475569', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--text-secondary)', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px solid var(--border-subtle)' }}>
                 {selectedProductObj.sku && (
                   <span>
-                    <strong>SKU:</strong> <code style={{ color: '#0F172A', background: '#E2E8F0', padding: '1px 5px', borderRadius: '4px' }}>{selectedProductObj.sku}</code>
+                    <strong>SKU:</strong> <code style={{ color: 'var(--surfaces-gold-light)', background: 'var(--bg-card)', padding: '1px 5px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>{selectedProductObj.sku}</code>
                   </span>
                 )}
                 {selectedProductObj.category && (
@@ -526,9 +526,10 @@ export default function AiAutoMapModal({
                         padding: '8px 12px',
                         fontSize: '13px',
                         fontWeight: 700,
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
+                        background: 'var(--bg-input)',
                         borderRadius: '8px',
-                        border: '1.5px solid #CBD5E1',
+                        border: '1.5px solid var(--border-medium)',
                         outline: 'none',
                       }}
                     />
@@ -752,7 +753,7 @@ export default function AiAutoMapModal({
         <div className="ai-modal-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748B' }}>
             <HelpCircle size={13} />
-            <span>Strict 1:1 mapping: only the selected Walcano product is used to generate the Surfaces product name.</span>
+            <span>Strict 1:1 mapping: only the selected Wallcano product is used to generate the Surfaces product name.</span>
           </div>
           <button
             type="button"
