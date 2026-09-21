@@ -38,9 +38,11 @@ class Settings(BaseSettings):
     # Shopify Inventory Management API
     SHOPIFY_SHOP_URL: Optional[str] = None
     SHOPIFY_ACCESS_TOKEN: Optional[str] = None
+    SHOPIFY_CLIENT_ID: Optional[str] = None
+    SHOPIFY_CLIENT_SECRET: Optional[str] = None
     SHOPIFY_API_VERSION: str = "2024-04"
     SHOPIFY_LOCATION_ID: Optional[str] = None
-    SHOPIFY_LOCATION_NAME: Optional[str] = "123 William Street"
+    SHOPIFY_LOCATION_NAME: Optional[str] = "Shop location"
     SHOPIFY_AUTO_SYNC: bool = True
 
     # Google Gemini AI

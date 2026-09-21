@@ -52,7 +52,9 @@ class ShopifyClient:
             try:
                 with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
                     file_config = json.load(f)
-                    config.update(file_config)
+                    for k, v in file_config.items():
+                        if v is not None:
+                            config[k] = v
             except Exception as e:
                 logger.warning(f"Failed to read Shopify config file: {e}")
 
@@ -115,10 +117,72 @@ class ShopifyClient:
 
     # ─── URL & Request Helpers ───────────────────────────────────────────────
 
+    def _normalize_shop_domain(self, shop_url: str) -> str:
+        """Ensure shop URL targets the direct Shopify admin domain."""
+        clean = re.sub(r"^https?://", "", shop_url).rstrip("/").lower()
+        if "surfacestiles.co.uk" in clean:
+            return "surfaces-tiles.myshopify.com"
+        if "." not in clean:
+            return f"{clean}.myshopify.com"
+        return clean
+
     def _get_api_endpoint(self, shop_url: str, api_version: str) -> str:
         """Construct the GraphQL endpoint URL for Shopify."""
-        clean_shop = re.sub(r"^https?://", "", shop_url).rstrip("/")
+        clean_shop = self._normalize_shop_domain(shop_url)
         return f"https://{clean_shop}/admin/api/{api_version}/graphql.json"
+
+    async def _resolve_access_token(self, shop: str, cfg: Dict[str, Any]) -> str:
+        """
+        Resolve an active Shopify access token:
+        1. Direct personal/app token (shpat_..., shpua_...)
+        2. Client Credentials grant for Shopify Dev Dashboard apps (using client_id and client_secret)
+        """
+        token = cfg.get("access_token") or ""
+        client_id = cfg.get("client_id") or self.settings.SHOPIFY_CLIENT_ID
+        client_secret = cfg.get("client_secret") or self.settings.SHOPIFY_CLIENT_SECRET or (token if token.startswith("shpss_") else None)
+
+        # Check if already a direct access token
+        if token.startswith("shpat_") or token.startswith("shpua_"):
+            return token
+
+        # If client credentials grant is applicable
+        if client_id and client_secret:
+            cached = cfg.get("_cached_oauth_token")
+            cached_exp = cfg.get("_cached_oauth_exp", 0)
+            if cached and time.time() < (cached_exp - 300):
+                return cached
+
+            clean_shop = self._normalize_shop_domain(shop)
+            token_url = f"https://{clean_shop}/admin/oauth/access_token"
+            payload = {
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            }
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+                resp = await client.post(token_url, data=payload, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    new_token = data.get("access_token")
+                    expires_in = data.get("expires_in", 86400)
+                    if new_token:
+                        self.save_config({
+                            "_cached_oauth_token": new_token,
+                            "_cached_oauth_exp": time.time() + expires_in,
+                        })
+                        return new_token
+                else:
+                    raise ValueError(f"Shopify OAuth exchange failed ({resp.status_code}): {resp.text}")
+
+        if token.startswith("shpss_") and not client_id:
+            raise ValueError(
+                "Provided token is a Shopify Client Secret (shpss_...). "
+                "Please also provide SHOPIFY_CLIENT_ID from Dev Dashboard -> App settings."
+            )
+
+        return token
 
     async def _execute_graphql(
         self,
@@ -131,21 +195,28 @@ class ShopifyClient:
         """Execute a GraphQL query or mutation against Shopify GraphQL Admin API."""
         cfg = self._load_stored_config()
         shop = shop_url or cfg.get("shop_url")
-        token = access_token or cfg.get("access_token")
         version = api_version or cfg.get("api_version") or self._default_api_version
 
-        if not shop or not token:
-            raise ValueError("Shopify shop URL or Access Token is missing.")
+        if not shop:
+            raise ValueError("Shopify shop URL is missing.")
+
+        # Resolve active access token
+        effective_token = access_token
+        if not effective_token:
+            effective_token = await self._resolve_access_token(shop, cfg)
+
+        if not effective_token:
+            raise ValueError("Shopify Access Token is missing.")
 
         endpoint = self._get_api_endpoint(shop, version)
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "X-Shopify-Access-Token": token,
+            "X-Shopify-Access-Token": effective_token,
         }
         payload = {"query": query, "variables": variables or {}}
 
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
             resp = await client.post(endpoint, json=payload, headers=headers)
             if resp.status_code != 200:
                 raise ValueError(f"Shopify GraphQL request failed with status {resp.status_code}: {resp.text}")
