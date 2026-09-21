@@ -138,7 +138,7 @@ export default function QuickBooksConnectButton({
   const realmId = qboStatus?.realm_id || '';
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block', zIndex: isOpen ? 1000 : 1 }}>
       <button
         type="button"
         id="qbo-connected-status-btn"
@@ -218,11 +218,12 @@ export default function QuickBooksConnectButton({
             top: 'calc(100% + 8px)',
             right: 0,
             width: '320px',
-            background: '#FFFFFF',
+            maxWidth: 'calc(100vw - 24px)',
+            background: 'var(--bg-card, #FFFFFF)',
             borderRadius: '12px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E2E8F0',
-            zIndex: 100,
+            boxShadow: '0 16px 48px rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.12)',
+            border: '1px solid var(--border-medium, #E2E8F0)',
+            zIndex: 1000,
             overflow: 'hidden',
             animation: 'fadeIn 0.15s ease',
           }}
@@ -266,13 +267,13 @@ export default function QuickBooksConnectButton({
           </div>
 
           {/* Body details */}
-          <div style={{ padding: '14px 16px' }}>
+          <div style={{ padding: '14px 16px', background: 'var(--bg-card, #FFFFFF)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
                   Connected Company
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                   <Building2 size={14} color="#15803D" />
                   <span>{companyName}</span>
                 </div>
@@ -280,10 +281,10 @@ export default function QuickBooksConnectButton({
 
               {realmId && (
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
                     QuickBooks Realm ID
                   </div>
-                  <div style={{ fontSize: '12px', fontFamily: 'monospace', color: '#334155', marginTop: '1px' }}>
+                  <div style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--text-secondary, #334155)', marginTop: '1px' }}>
                     {realmId}
                   </div>
                 </div>
@@ -291,12 +292,12 @@ export default function QuickBooksConnectButton({
 
               <div
                 style={{
-                  background: '#F8FAFC',
+                  background: 'var(--bg-subtle, #F8FAFC)',
                   borderRadius: '8px',
                   padding: '8px 10px',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
                   fontSize: '11px',
-                  color: '#475569',
+                  color: 'var(--text-secondary, #475569)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -307,7 +308,7 @@ export default function QuickBooksConnectButton({
               </div>
             </div>
 
-            <hr style={{ border: 'none', borderTop: '1px solid #F1F5F9', margin: '14px 0 10px' }} />
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle, #F1F5F9)', margin: '14px 0 10px' }} />
 
             {/* Actions Inside Popover */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -351,9 +352,18 @@ export default function QuickBooksConnectButton({
                     justifyContent: 'flex-start',
                     padding: '7px 10px',
                     fontSize: '12px',
-                    color: '#DC2626',
-                    background: '#FEF2F2',
-                    border: '1px solid #FEE2E2',
+                    color: '#EF4444',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
                   }}
                 >
                   <LogOut size={13} />

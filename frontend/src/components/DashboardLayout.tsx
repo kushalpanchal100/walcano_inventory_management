@@ -119,7 +119,7 @@ export default function DashboardLayout({
           borderBottom: '1px solid var(--border-subtle)',
           position: 'sticky',
           top: 0,
-          zIndex: 40,
+          zIndex: 100,
           boxShadow: 'var(--shadow-xs)',
           transition: 'background 0.25s ease, border-color 0.25s ease',
         }}
@@ -134,8 +134,6 @@ export default function DashboardLayout({
             justifyContent: 'space-between',
             gap: '12px',
             flexWrap: 'nowrap',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
           }}
         >
           {/* ─── Left: Combined Brand / Logo Area ─────────────────────── */}
